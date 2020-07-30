@@ -1,5 +1,22 @@
 #!/bin/bash
 
+program_name="puredns"
+program_version="v1.0"
+program_description="Very accurate massdns resolving and bruteforcing."
+
+COL_LOGO='\033[0;36m'
+COL_PROGNAME='\033[1;32m'
+COL_PROGVERS='\033[0;36m'
+COL_PROGDESC='\033[1;37m'
+COL_META='\033[1;37m'
+COL_MESSAGE='\033[0;36m'
+COL_MESSAGE_TEXT='\033[0;37m'
+COL_SUCCESS='\033[1;32m'
+COL_SUCCESS_TEXT='\033[0;37m'
+COL_TEXT='\033[1;37m'
+COL_PV='\033[1;30m'
+COL_RESET='\033[0m'
+
 help() {
 	echo "puredns v1.0"
 	echo "Use massdns to accurately resolve a large amount of subdomains and extract wildcard domains."
@@ -36,6 +53,29 @@ usage() {
 	echo "		-wa, --write-answers <filename>		Write wildcard DNS answers to a file"
 	echo ""
 	echo "		-h, --help				Display this message"
+}
+
+print_header() {
+	printf "${COL_LOGO}" >&2
+	printf '                          _           \n' >&2
+	printf '                         | |          \n' >&2
+	printf ' _ __  _   _ _ __ ___  __| |_ __  ___ \n' >&2
+	printf "| '_ \\| | | | '__/ _ \\/ _\` | '_ \\/ __|\n" >&2
+	printf '| |_) | |_| | | |  __/ (_| | | | \__ \\\n' >&2
+	printf '| .__/ \__,_|_|  \___|\__,_|_| |_|___/\n' >&2
+	printf '| |                                   \n' >&2
+	printf "|_|                       ${COL_PROGNAME}${program_name} ${COL_PROGVERS}${program_version}\\n" >&2
+	printf '\n' >&2
+	printf "${COL_PROGDESC}${program_description}\n" >&2
+	printf "${COL_RESET}\n" >&2
+}
+
+log_message() {
+	printf "${COL_META}[${COL_MESSAGE}*${COL_META}] ${COL_MESSAGE_TEXT}$1${COL_RESET}\n" >&2
+}
+
+log_success() {
+	printf "${COL_META}[${COL_SUCCESS}!${COL_META}] ${COL_SUCCESS_TEXT}$1${COL_RESET}\n" >&2
 }
 
 parse_args() {
@@ -185,6 +225,7 @@ init() {
 }
 
 prepare_domains_list() {
+	log_message "Preparing list of domains for massdns..."
 	if [[ "${mode}" -eq 0 ]]; then
 		cp "${domains_file}" "${domains_work}"
 	elif [[ "${mode}" -eq 1 ]]; then
@@ -192,6 +233,8 @@ prepare_domains_list() {
 	fi
 
 	if [[ "${skip_sanitize}" -eq 0 ]]; then
+		log_message "Sanitizing list..."
+
 		# Set all to lowercase
 		cat "${domains_work}" | tr '[:upper:]' '[:lower:]' > "${tempfile_work}"
 		cp "${tempfile_work}" "${domains_work}"
@@ -200,15 +243,35 @@ prepare_domains_list() {
 		cat "${domains_work}" | grep -o '^[a-z0-9\.\-]*$' > "${tempfile_work}"
 		cp "${tempfile_work}" "${domains_work}"
 	fi
+
+	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') domains to resolve with massdns"
 }
 
 massdns_resolve() {
-	massdns -r "${resolvers_file}" -o S -t A -w "${massdns_work}" "${domains_work}"
+	log_message "Invoking massdns... this can take some time"
+
+	printf "${COL_PV}" >&2
+
+	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
+	cat "${domains_work}" | pv -l -F "Queries per seconds: %r %e Progress: %p" -s "${count}" | massdns -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
+
+	printf "${COL_RESET}" >&2
+
+	log_success "$(wc -l "${domains_work}" | awk '{ printf $1 }') domains returned a DNS answer"
 }
 
 cleanup_wildcards() {
-	$(dirname $0)/wildcarder --load-massdns-cache "${massdns_work}" --write-domains "${wildcards_work}" --write-answers "${wildcard_answers_work}" "${domains_work}" >&2
+	log_message "Detecting wildcard root subdomains..."
+	$(dirname $0)/wildcarder --load-massdns-cache "${massdns_work}" --write-domains "${wildcards_work}" --write-answers "${wildcard_answers_work}" "${domains_work}" > /dev/null
+
+	local count=$(wc -l "${wildcards_work}" | awk '{ printf $1 }')
+	log_success "${count} wildcard root subdomains found"
+	if [[ ! "${count}" -eq 0 ]]; then
+		cat "${wildcards_work}" >&2
+	fi
+
+	log_message "Cleaning wildcards from results..."
 
 	# Save wildcard roots that resolve
 	local wildcard_root
@@ -225,14 +288,28 @@ cleanup_wildcards() {
 	cat "${wildcard_valid_roots_work}" > "${tempfile_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' >> "${tempfile_work}"
 	cat "${tempfile_work}" | sort -u > "${domains_work}"
+
+	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') non-wildcard domains remaining."
 }
 
 massdns_validate() {
-	massdns -r "${trusted_resolvers_file}" -s 1 -o S -t A -w "${massdns_work}" "${domains_work}"
+	local ratelimit=$(( $(wc -l "${trusted_resolvers_file}" | awk '{ print $1 }') * 10 ))
+	log_message "Validating domains against trusted resolvers... (rate limit: ${ratelimit} queries per second)"
+
+	printf "${COL_PV}" >&2
+
+	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
+	cat "${domains_work}" | pv -L "${ratelimit}" -l -F "Queries per second: %r %e Progress: %p" -s "${count}" | massdns -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
+
+	printf "${COL_RESET}" >&2
+
+	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') domains validated!"
 }
 
 write_output_files() {
+	echo "" >&2
+
 	cat ${domains_work}
 
 	if [[ -n "${domains_file}" ]]; then
@@ -256,12 +333,13 @@ cleanup() {
 	debug=0
 
 	if [[ "${debug}" -eq 1 ]]; then
-		echo "domains_work:		${domains_work}"
-		echo "massdns_work:		${massdns_work}"
-		echo "tempfile_work:		${tempfile_work}"
-		echo "wildcards_work:		${wildcards_work}"
-		echo "wildcard_answers_work:	${wildcard_answers_work}"
-		echo "wildcard_valid_roots_work:${wildcard_valid_roots_work}"
+		echo ""
+		echo "domains_work:			${domains_work}"
+		echo "massdns_work:			${massdns_work}"
+		echo "tempfile_work:			${tempfile_work}"
+		echo "wildcards_work:			${wildcards_work}"
+		echo "wildcard_answers_work:		${wildcard_answers_work}"
+		echo "wildcard_valid_roots_work:	${wildcard_valid_roots_work}"
 	else
 		rm "${domains_work}"
 		rm "${massdns_work}"
@@ -272,10 +350,10 @@ cleanup() {
 	fi
 }
 
-
 main() {
 	parse_args $@
 	init
+	print_header
 
 	prepare_domains_list
 
