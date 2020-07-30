@@ -1,0 +1,232 @@
+#!/usr/bin/python3
+import sys
+import argparse
+import subprocess
+import random
+import string
+
+test_subdomain = ''.join(random.choice(string.ascii_lowercase) for i in range(16))
+dns_cache = {}
+known_wildcard_answers = {}
+dns_queries_count = 0
+
+def print_banner():
+    print("wildcarder v1.0")
+    print("===============")
+    print("")
+
+def print_results():
+    if len(known_wildcard_answers) == 0:
+        print("No wildcard domains found.")
+        return
+
+    print("Wildcard domains found:")
+    print("")
+
+    domains = get_all_root_domains()
+    for domain in domains:
+        print("*.{0}".format(domain))
+    print("")
+
+    print("Wildcard DNS answers found:")
+    print("")
+    answers = get_all_answers()
+    for answer in answers:
+        print(answer)
+    print("")
+
+    print("Finished with {0} DNS queries".format(dns_queries_count))
+
+def save_domains(filename):
+    try:
+        outfile = open(filename, 'a')
+    except:
+        print("Unable to open {0} for writing")
+        exit(1)
+
+    domains = get_all_root_domains()
+    for domain in domains:
+        outfile.write('*.' + domain + '\n')
+
+    outfile.close()
+
+def save_answers(filename):
+    try:
+        outfile = open(filename, 'a')
+    except:
+        print("Unable to open {0} for writing")
+        exit(1)
+
+    answers = get_all_answers()
+    for answer in answers:
+        outfile.write(answer + '\n')
+
+    outfile.close()
+
+def get_all_root_domains():
+    domains = {}
+    for answer in known_wildcard_answers:
+        for root_domain in known_wildcard_answers[answer]:
+            domains[root_domain] = True
+    return domains
+
+def get_all_answers():
+    return known_wildcard_answers
+
+def load_massdns_cache(filename):
+    try:
+        massdns_file = open(filename, 'r')
+    except:
+        print("Unable to open massdns file {0}".format(args[input_file]))
+        exit(1)
+
+    for line in massdns_file.read().splitlines():
+        entry = line.split(' ')
+
+        if len(entry) != 3:
+            continue
+
+        if entry[1] != 'CNAME' and entry[1] != 'A' and entry[1] != 'AAAA':
+            continue
+
+        domain = entry[0].rstrip('.')
+        answer = entry[2].rstrip('.')
+       
+        if domain in dns_cache:
+            dns_cache[domain].append(answer)
+        else:
+            dns_cache[domain] = [answer]
+
+    massdns_file.close()
+
+def get_parent(domain):
+    return '.'.join(domain.split('.')[1:])
+
+def dns_resolve(domain):
+    answers = []
+    if domain in dns_cache:
+        answers = dns_cache[domain]
+    else:
+        cmd = 'dig +short ' + domain
+        process = subprocess.Popen(['bash', '-c', cmd], stdout = subprocess.PIPE, universal_newlines = True)
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            print("Unable to run {0}".format(cmd))
+            exit(1)
+
+        for line in stdout.splitlines():
+            answers.append(line.strip().rstrip('.'))
+
+        dns_cache[domain] = answers
+
+        global dns_queries_count
+        dns_queries_count = dns_queries_count + 1
+
+    return answers
+
+def is_wildcard_root(parent, domain):
+    parent_domain = get_parent(domain)
+    test_domain = test_subdomain + '.' + get_parent(domain)
+    test_answers = dns_resolve(test_domain)
+
+    test_parent = test_subdomain + '.' + get_parent(parent)
+    test_parent_answers = dns_resolve(test_parent)
+
+    if test_answers[0] in test_parent_answers:
+        return True
+
+    return False
+
+def get_wildcard_root(domain):
+    parts = domain.split('.')
+    numparts = len(parts)
+
+    topmost = domain
+    for i in range(numparts - 1, 0, -1):
+        parent = '.'.join(parts[i - 1:numparts])
+        if is_wildcard_root(parent, domain):
+            return topmost
+        topmost = parent
+
+    return topmost
+
+def answer_is_wildcard(domain, answer):
+    if answer in known_wildcard_answers:
+        # Look if there is already a root domain in the known wildcard answers
+        for wildcard_answer in known_wildcard_answers:
+            for root_domain in known_wildcard_answers[wildcard_answer]:
+                if domain.endswith('.' + root_domain):
+                    return True
+    return False
+
+def process_domains_from_file(filename):
+    try:
+        input_file = open(filename, 'r')
+    except:
+        print("Unable to open file {0}".format(filename))
+        exit(1)
+
+    for line in input_file.read().splitlines():
+        domain = line.strip()
+        if domain == '':
+            continue
+        process_domain(domain)
+
+    input_file.close()
+
+def process_domain(domain):
+    answers = dns_resolve(domain)
+    if len(answers) == 0:
+        return False
+
+    # Use previously found wildcard answers to check if domain is wildcard
+    if answer_is_wildcard(domain, answers[0]):
+        return True
+
+    # Perform wildcard test
+    parent_domain = get_parent(domain)
+    test_domain = test_subdomain + '.' + parent_domain
+    test_answers = dns_resolve(test_domain)
+
+    # Check if domain is definitely a wildcard
+    if answers[0] in test_answers:
+        root_domain = get_wildcard_root(domain)
+        # Add the root wildcard domain to the list of known wildcard answers
+        for answer in test_answers:
+            if answer in known_wildcard_answers:
+                known_wildcard_answers[answer].append(root_domain)
+            else:
+                known_wildcard_answers[answer] = [root_domain]
+        return True
+
+    return False
+
+def main():
+    parser = argparse.ArgumentParser(description = 'Find wildcards from a list of subdomains, optionally loading a massdns simple text output file to reduce number of DNS queries.')
+    parser.add_argument('--load-massdns-cache', dest = 'massdns_file', metavar = 'massdns.txt', help = "load a DNS cache from a massdns output file (-oS)")
+    parser.add_argument('--write-domains', dest = 'domains_file', metavar = 'domains.txt', help = "write wildcard domains to file")
+    parser.add_argument('--write-answers', dest = 'answers_file', metavar = 'answers.txt', help = "write wildcard DNS answers to file")
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('file', type = str, help = "file containing list of subdomains")
+    args = parser.parse_args()
+
+    print_banner()
+
+    if args.massdns_file != None:
+        load_massdns_cache(args.massdns_file)
+
+    process_domains_from_file(args.file)
+
+    print_results()
+
+    if args.domains_file != None:
+        save_domains(args.domains_file)
+
+    if args.answers_file != None:
+        save_answers(args.answers_file)
+
+    exit (0)
+
+main()
+

@@ -1,0 +1,297 @@
+#!/bin/bash
+
+help() {
+	echo "puredns v1.0"
+	echo "Use massdns to accurately resolve a large amount of subdomains and extract wildcard domains."
+	echo ""
+	usage
+}
+
+usage() {
+	echo "Usage:"
+	echo "	puredns [--skip-validation] [--skip-wildcard-check] [--write-massdns <filename>]"
+	echo "		[--write-wildcards <filename>] [--write-wildcard-answers <filename>] [--help] <command> <args>"
+	echo ""
+	echo "	Example:"
+	echo "		puredns [args] resolve domains.txt"
+	echo "		puredns [args] bruteforce wordlist.txt domain.com"
+	echo ""
+	echo "	Commands:"
+	echo "		resolve	<filename>		Resolve a list of domains"
+	echo "		bruteforce <wordlist> <domain>	Perform subdomain bruteforcing on a domain using a wordlist"
+	echo ""
+	echo "	Optional:"
+	echo "		-r,  --resolvers <filename>		Text file containing resolvers"
+	echo "		-tr, --trusted-resolvers <filename>	Text file containing trusted resolvers"
+	echo ""
+	echo "		-ss, --skip-sanitize			Do not sanitize the list of domains to test"
+	echo "							By default, domains are set to lowercase and"
+	echo "							only valid characters are kept"
+	echo "		-sv, --skip-validation			Do not validate massdns results using trusted resolvers"
+	echo "		-sw, --skip-wildcard-check		Do no perform wildcard detection and filtering"
+	echo ""
+	echo "		-w, --write <filename>			Write valid domains to a file"
+	echo "		-wm, --write-massdns <filename>		Write massdns results to a file"
+	echo "		-ww, --write-wildcards <filename>	Write wildcard root subdomains to a file"
+	echo "		-wa, --write-answers <filename>		Write wildcard DNS answers to a file"
+	echo ""
+	echo "		-h, --help				Display this message"
+}
+
+parse_args() {
+	resolvers_file="$(dirname $0)/resolvers.txt"
+	trusted_resolvers_file="$(dirname $0)/trusted.txt"
+
+	skip_validation=0
+	skip_wildcard_check=0
+	skip_sanitize=0
+
+	domains_file=''
+	massdns_file=''
+	wildcards_file=''
+	wildcard_answers_file=''
+
+	set +u
+	while :; do
+		case $1 in
+			--resolvers|-r)
+				resolvers_file=$2
+				shift
+				;;
+			--trusted-resolvers|-tr)
+				trusted_resolvers_file=$2
+				shift
+				;;
+			--skip-sanitize|-ss)
+				skip_sanitize=1
+				;;
+			--skip-validation|-sv)
+				skip_validation=1
+				;;
+			--skip-wildcard-check|-sw)
+				skip_wildcard_check=1
+				;;
+			--write|-w)
+				domains_file=$2
+				shift
+				;;
+			--write-massdns|-wm)
+				massdns_file=$2
+				shift
+				;;
+			--write-wildcard-answers|-wa)
+				wildcard_answers_file=$2
+				shift
+				;;
+			--write-wildcards|-ww)
+				wildcards_file=$2
+				shift
+				;;
+			--help|-h)
+				help
+				exit 0
+				;;
+			resolve)
+				mode=0
+				domains_file=$2
+				shift
+				;;
+			bruteforce)
+				mode=1
+				wordlist_file=$2
+				domain=$3
+				shift
+				shift
+				;;
+			"")
+				break
+				;;
+			*)
+				usage
+				echo ""
+				echo "Error: unknown argument: $1"
+				exit 1
+				;;
+		esac
+		shift
+	done
+
+	if [[ -z "${mode}" ]]; then
+		usage
+		echo ""
+		echo "Error: no command given"
+		exit 1
+	fi
+
+	if [[ ! -f "${resolvers_file}" ]]; then
+		echo "Error: unable to open resolvers file ${resolvers_file}"
+		echo ""
+		exit 1
+	fi
+
+	if [[ "${skip_validation}" -eq 0 ]] && [[ ! -f "${trusted_resolvers_file}" ]]; then
+		echo "Error: unable to open trusted resolvers file ${trusted_resolvers_file}"
+		echo ""
+		exit 1
+	fi
+
+	if [[ "${mode}" -eq 0 ]]; then
+		if [[ -z "${domains_file}" ]]; then
+			usage
+			echo ""
+			echo "Error: no domains file specified"
+			exit 1
+		fi
+
+		if [[ ! -f "${domains_file}" ]]; then
+			echo "Error: unable to open domains file ${domains_file}"
+			echo ""
+			exit 1
+		fi
+	fi
+
+	if [[ "${mode}" -eq 1 ]]; then
+		if [[ -z "${wordlist_file}" ]]; then
+			usage
+			echo ""
+			echo "Error: no wordlist specified"
+			exit 1
+		fi
+
+		if [[ ! -f "${wordlist_file}" ]]; then
+			echo "Error: unable to open wordlist file ${wordlist_file}"
+			echo ""
+			exit 1
+		fi
+
+		if [[ -z "${domain}" ]]; then
+			usage
+			echo ""
+			echo "Error: no domain specified"
+			exit 1
+		fi
+	fi
+
+	set -u
+}
+
+init() {
+	domains_work=$(mktemp)
+	massdns_work=$(mktemp)
+	tempfile_work=$(mktemp)
+	wildcards_work=$(mktemp)
+	wildcard_answers_work=$(mktemp)
+	wildcard_valid_roots_work=$(mktemp)
+}
+
+prepare_domains_list() {
+	if [[ "${mode}" -eq 0 ]]; then
+		cp "${domains_file}" "${domains_work}"
+	elif [[ "${mode}" -eq 1 ]]; then
+		sed -E "s/^(.*)$/\\1.${domain}/" "${wordlist_file}" > "${domains_work}"
+	fi
+
+	if [[ "${skip_sanitize}" -eq 0 ]]; then
+		# Set all to lowercase
+		cat "${domains_work}" | tr '[:upper:]' '[:lower:]' > "${tempfile_work}"
+		cp "${tempfile_work}" "${domains_work}"
+
+		# Keep only valid characters
+		cat "${domains_work}" | grep -o '^[a-z0-9\.\-]*$' > "${tempfile_work}"
+		cp "${tempfile_work}" "${domains_work}"
+	fi
+}
+
+massdns_resolve() {
+	massdns -r "${resolvers_file}" -o S -t A -w "${massdns_work}" "${domains_work}"
+	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
+}
+
+cleanup_wildcards() {
+	$(dirname $0)/wildcarder --load-massdns-cache "${massdns_work}" --write-domains "${wildcards_work}" --write-answers "${wildcard_answers_work}" "${domains_work}" >&2
+
+	# Save wildcard roots that resolve
+	local wildcard_root
+	while read wildcard_root; do
+		wildcard_root=$(echo "${wildcard_root}" | sed 's/\*\.//')
+		cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | grep "^${wildcard_root}$" >> "$wildcard_valid_roots_work"
+	done < "${wildcards_work}"
+
+	# Filter out wildcard answers
+	grep -vf "${wildcard_answers_work}" "${massdns_work}" > "${tempfile_work}"
+	cp "${tempfile_work}" "${massdns_work}"
+
+	# Extract valid domains and add back valid wildcard roots
+	cat "${wildcard_valid_roots_work}" > "${tempfile_work}"
+	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' >> "${tempfile_work}"
+	cat "${tempfile_work}" | sort -u > "${domains_work}"
+}
+
+massdns_validate() {
+	massdns -r "${trusted_resolvers_file}" -s 1 -o S -t A -w "${massdns_work}" "${domains_work}"
+	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
+}
+
+write_output_files() {
+	cat ${domains_work}
+
+	if [[ -n "${domains_file}" ]]; then
+		cp "${domains_work}" "${domains_file}"
+	fi
+
+	if [[ -n "${massdns_file}" ]]; then
+		cp "${massdns_work}" "${massdns_file}"
+	fi
+
+	if [[ -n "${wildcards_file}" ]]; then
+		cp "${wildcards_work}" "${wildcards_file}"
+	fi
+
+	if [[ -n "${wildcard_answers_file}" ]]; then
+		cp "${wildcard_answers_work}" "${wildcard_answers_file}"
+	fi
+}
+
+cleanup() {
+	debug=0
+
+	if [[ "${debug}" -eq 1 ]]; then
+		echo "domains_work:		${domains_work}"
+		echo "massdns_work:		${massdns_work}"
+		echo "tempfile_work:		${tempfile_work}"
+		echo "wildcards_work:		${wildcards_work}"
+		echo "wildcard_answers_work:	${wildcard_answers_work}"
+		echo "wildcard_valid_roots_work:${wildcard_valid_roots_work}"
+	else
+		rm "${domains_work}"
+		rm "${massdns_work}"
+		rm "${tempfile_work}"
+		rm "${wildcards_work}"
+		rm "${wildcard_answers_work}"
+		rm "${wildcard_valid_roots_work}"
+	fi
+}
+
+
+main() {
+	parse_args $@
+	init
+
+	prepare_domains_list
+
+	massdns_resolve
+
+	if [[ "${skip_wildcard_check}" -eq 0 ]]; then
+		cleanup_wildcards
+	fi
+
+	if [[ "${skip_validation}" -eq 0 ]]; then
+		massdns_validate
+	fi
+
+	write_output_files
+
+	cleanup
+}
+
+main $@
