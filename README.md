@@ -1,10 +1,13 @@
 # puredns
+![puredns](https://user-images.githubusercontent.com/55468528/88879673-ea3a3800-d1f8-11ea-8540-7cb6d16144e3.png)
 
 [massdns](https://github.com/blechschmidt/massdns) is an incredibly powerful DNS resolver used to perform bulk lookups. With the proper bandwidth and a good list of public resolvers, it can resolve millions of queries in just a few minutes.
 
-Unfortunately, the results are only as good as the answers provided by the public resolvers. They are often polluted by wildcards or DNS poisoned entries.
+Unfortunately, the results are only as good as the answers provided by the public resolvers used. They are often polluted by DNS poisoned entries. Wildcard subdomains are also a pain to deal with, as they add a lot of noise to the list of resolved subdomains.
 
-**puredns** is a bash application that uses massdns to _accurately_ perform DNS bruteforcing and mass resolving. It ensures the results obtained by public resolvers are clean and can work around DNS poisoning by validating the answers obtained using a list of trusted resolvers. It also handles wildcard subdomains through its companion Python script, **wildcarder**, which can also be used by itself.
+**puredns** is a bash and python application that uses massdns to _accurately_ perform DNS bruteforcing and mass resolving. It ensures the results obtained by public resolvers are clean and can work around DNS poisoning by validating the answers obtained using a list of trusted resolvers. It also handles wildcard subdomains correctly through its companion Python script, **wildcarder**.
+
+Think this is useful? :star: Star us on GitHub — it helps!
 
 ## Features
 
@@ -12,19 +15,67 @@ Unfortunately, the results are only as good as the answers provided by the publi
 * Supports DNS bruteforcing using a wordlist and a root domain
 * Cleans wildcard root subdomains with a minimal number of queries
 * Validates that the results are free of DNS poisoning by running against a list of known, trustable resolvers
-* Saves clean massdns output, wildcard root domains and answers, and list of valid subdomains
+* Saves list of valid subdomains, wildcard root domains and answers, and clean massdns output containing only the valid entries
 * Comes with a massive list of tested public resolvers from [public-dns.info](https://public-dns.info/)
+
+## How it works
+
+![puredns](https://user-images.githubusercontent.com/55468528/88879682-ee665580-d1f8-11ea-9239-eb895790aa63.gif)
+
+In the image above, you can see puredns in action against the domain store.yahoo.com using a small wordlist of the 100k most common subdomains. This is happening in real time.
+
+As part of its workflow, puredns perfoms four steps automatically:
+
+### 1. Preparation and sanitization of domains to resolve
+
+When in resolve mode, puredns expects a list of domains to resolve.
+
+When in bruteforce mode, puredns creates the list of domains to resolve from the domain provided and a wordlist.
+
+In both cases, the list of domains is sanitized. Only entries containing valid characters that can be found in a domain name are kept (essentially `[a-zA-Z0-9\.\-]`).
+
+This step can be skipped using the `--skip-sanitize` flag.
+
+### 2. Dumb mass resolve
+
+puredns will then perform a mass resolve of all the domains in the list using massdns. It saves the results to a temporary file.
+
+The results are usually polluted: some public resolvers will have sent poisoned replies, and wildcard subdomains can also quickly inflate the results.
+
+This step is mandatory and cannot be skipped.
+
+### 3. Wildcard detection
+
+The application then uses its companion _wildcarder_ Python script to detect and extract all the wildcard root subdomains from the massdns results file.
+
+wildcarder will reuse the massdns output to minimize the number of queries it needs to perform. It is quite common for wildcarder to figure out the structure of wildcard subdomains with as few as 5-10 DNS queries when it has a massdns file to prime its cache.
+
+puredns will then clean up all the wildcard subdomains from its results and keep only the wildcard root subdomains that resolve correctly.
+
+This step can be skipped using the `--skip-wildcard-check` flag.
+
+### 4. Validation
+
+To protect against DNS poisoning, puredns uses massdns one last time to validate the remaining results using a list of trusted DNS resolvers.
+
+This step is done at a slower pace as not to hit any rate limiting on the trusted resolvers. We try to limit the rate to 10 queries per second per resolver.
+
+This step can be skipped using the `--skip-validation` flag.
+
+Once this is done, the resulting files are clean of wildcard subdomains and DNS poisoned answers.
+
+Only the resulting valid domains are sent to stdout so that you can pipe the results to other programs. The rest of the information output by puredns is sent to stderr.
 
 ## Installation
 
-puredns requires massdns to be installed on the host machine. [Follow the instructions](https://github.com/blechschmidt/massdns#compilation) to compile massdns on your system. It also needs to be in accessible through the PATH environment variable.
+puredns requires massdns to be installed on the host machine. [Follow the instructions](https://github.com/blechschmidt/massdns#compilation) to compile massdns on your system. For now, it also needs to be in accessible through the PATH environment variable. On most systems, a good place to copy the massdns executable is `/usr/local/bin`.
 
 The script also requires a few other dependencies:
 
 * python3
 * pv
 
-To ensure the dependencies are installed on Ubuntu:
+To ensure the dependencies are installed on Ubuntu, you can use the following command line:
 
 ```
 sudo apt install -y python3 pv
@@ -39,36 +90,6 @@ git clone https://github.com/d3mondev/puredns.git
 ## Usage
 
 ### puredns
-
-puredns perfoms three steps automatically:
-
-#### 1. Dumb mass resolve
-
-First, it performs a mass resolve of all the domains using massdns and saves the results to an intermediary file.
-
-The results are usually polluted: some public resolvers will have sent poisoned replies, and wildcard subdomains can also quickly inflate the results.
-
-This step is mandatory and cannot be skipped.
-
-#### 2. Wildcard detection
-
-The application then uses its companion _wildcarder_ script to detect and extract all the wildcard root subdomains from the massdns results file.
-
-wildcarder will reuse the massdns output to minimize the number of queries it needs to perform. It is quite common for wildcarder to figure out the structure of wildcard subdomains with as few as 5-10 DNS queries when it is passed a massdns file to prime its cache.
-
-puredns will then clean up all the wildcard subdomains from the results.
-
-This step can be skipped using the `--skip-wildcard-check` flag.
-
-#### 3. Validation
-
-To protect against DNS poisoning, massdns is used one last time to validate the remaining results using a list of trusted DNS resolvers.
-
-This step is done at a slower pace as not to hit any rate limiting on the trusted resolvers.
-
-This step can be skipped using the `--skip-validation` flag.
-
-Once this is done, the resulting files are clean of wildcard subdomains and DNS poisoned answers.
 
 #### Command line arguments
 
@@ -106,22 +127,6 @@ Usage:
                 -h, --help                              Display this message
 ```
 
-#### Examples
-
-Using the included list of resolvers, puredns can bruteforce a massive list of subdomains using a wordlist named _all.txt_:
-
-`puredns bruteforce all.txt domain.com`
-
-Only the resulting valid domains are sent to stdout so that you can pipe the results to other programs.
-
-It can also save all the DNS answers and wildcard subdomains found:
-
-`puredns resolve domains.txt --write-massdns dns_answers.txt --write-wildcards wildcards.txt --write valid_domains.txt`
-
-You can specify your own custom resolvers:
-
-`puredns resolve domains.txt -r resolvers.txt`
-
 ### wildcarder
 
 wildcarder can extract wildcard root subdomains and their DNS answers from a list of domains.
@@ -153,6 +158,46 @@ optional arguments:
   --version             show program's version number and exit
 ```
 
+## Examples
+
+![puredns_yahoo](https://user-images.githubusercontent.com/55468528/88879692-f1f9dc80-d1f8-11ea-9e96-70a9ef107246.png)
+
+### Subdomain bruteforcing
+
+Using the included list of resolvers, puredns can bruteforce a massive list of subdomains using a wordlist named `all.txt`:
+
+`puredns bruteforce all.txt domain.com`
+
+### Resolving a list of domains
+
+You can also resolve a list of domains contained in a text file (one per line).
+
+`puredns resolve domains.txt`
+
+### Saving the results to files
+
+You can save the following information to files to reuse it in your workflows:
+
+* **domains**: clean list of domains that resolve correctly
+* **wildcard root domains**: List of the wildcard root domains found (ie. *\*.store.yahoo.com*)
+* **wildcard answers**: list of DNS answers given by the wildcard subdomains (A and CNAME records)
+* **massdns results file (simple text output)**: can be used as a reference and to extract A and CNAME records.
+
+```
+puredns resolve domains.txt --write valid_domains.txt \
+                            --write-wildcard-answers wildcard_answers.txt \
+                            --write-wildcards wildcards.txt \
+                            --write-massdns massdns.txt
+```
+
+### Using custom resolvers
+
+You can use a custom list of resolvers with puredns. Simply pass the `-r` argument to the script.
+
+You can also specify a list of custom trusted resolvers with the `-tr` argument.
+
+`puredns resolve domains.txt -r resolvers.txt -tr trusted.txt`
+
 ## Resources
 
 [shuffleDNS](https://github.com/projectdiscovery/shuffledns) is a good alternative written in go that handles wildcard subdomains using a different algorithm.
@@ -161,13 +206,15 @@ optional arguments:
 
 [DNS Validator](https://github.com/vortexau/dnsvalidator) can be used to curate your own list of public DNS resolvers.
 
+[all.txt wordlist](https://gist.github.com/jhaddix/f64c97d0863a78454e44c2f7119c2a6a) Jhaddix's iconic `all.txt` wordlist commonly used for subdomain enumeration.
+
 ## Author
 
 I'm d3mondev, a coder and security enthusiast. [Follow me on twitter](https://twitter.com/d3mondev)!
 
 ## Disclaimer & License
 
-The resolvers included in this repository are for reference only. The author is not responsible for any misuse of the resolvers in that list.
+The resolvers included in this repository are present for reference only. The author is not responsible for any misuse of the resolvers in that list. It is the user's responsibility to curate a list of resolvers you are authorized to use.
 
 Usage of this program for attacking targets without consent is illegal. It is the user's responsibility to obey all applicable laws. The developer assumes no liability and is not responsible for any misuse or damage cause by this program. Please use responsibly.
 
