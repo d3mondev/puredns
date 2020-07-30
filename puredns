@@ -85,6 +85,10 @@ log_success() {
 	printf "${COL_META}[${COL_SUCCESS}!${COL_META}] ${COL_SUCCESS_TEXT}$1${COL_RESET}\n" >&2
 }
 
+domain_count() {
+	echo "$(wc -l "${domains_work}" | awk '{ print $1 }')"
+}
+
 parse_args() {
 	massdns_bin="massdns"
 
@@ -277,7 +281,7 @@ prepare_domains_list() {
 		cp "${tempfile_work}" "${domains_work}"
 	fi
 
-	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') domains to resolve with massdns"
+	log_success "$(domain_count) domains to resolve with massdns"
 }
 
 massdns_resolve() {
@@ -285,7 +289,7 @@ massdns_resolve() {
 
 	printf "${COL_PV}" >&2
 
-	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
+	local count="$(domain_count)"
 
 	local pv_args=("-l" "-F" "Queries per seconds: %r %t %e Progress: %p" "-s" "${count}")
 	if [[ ! "${limit_rate}" -eq 0 ]]; then
@@ -297,7 +301,17 @@ massdns_resolve() {
 
 	printf "${COL_RESET}" >&2
 
-	log_success "$(wc -l "${domains_work}" | awk '{ printf $1 }') domains returned a DNS answer"
+	log_success "$(domain_count) domains returned a DNS answer"
+}
+
+filter_wildcards_from_answers() {
+	grep -vf "${wildcard_answers_work}" "${massdns_work}" > "${tempfile_work}"
+	cp "${tempfile_work}" "${massdns_work}"
+
+	# Extract valid domains and add back valid wildcard roots
+	cat "${wildcard_valid_roots_work}" > "${tempfile_work}"
+	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' >> "${tempfile_work}"
+	cat "${tempfile_work}" | sort -u > "${domains_work}"
 }
 
 cleanup_wildcards() {
@@ -312,23 +326,15 @@ cleanup_wildcards() {
 
 	log_message "Cleaning wildcards from results..."
 
-	# Save wildcard roots that resolve
+	# Backup wildcard roots that resolve
 	local wildcard_root
 	while read wildcard_root; do
 		wildcard_root=$(echo "${wildcard_root}" | sed 's/\*\.//')
 		cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | grep "^${wildcard_root}$" >> "$wildcard_valid_roots_work"
 	done < "${wildcards_work}"
 
-	# Filter out wildcard answers
-	grep -vf "${wildcard_answers_work}" "${massdns_work}" > "${tempfile_work}"
-	cp "${tempfile_work}" "${massdns_work}"
-
-	# Extract valid domains and add back valid wildcard roots
-	cat "${wildcard_valid_roots_work}" > "${tempfile_work}"
-	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' >> "${tempfile_work}"
-	cat "${tempfile_work}" | sort -u > "${domains_work}"
-
-	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') non-wildcard domains remaining"
+	filter_wildcards_from_answers
+	log_success "$(domain_count) non-wildcard domains remaining"
 }
 
 massdns_validate() {
@@ -344,13 +350,13 @@ massdns_validate() {
 
 	printf "${COL_PV}" >&2
 
-	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
+	local count=$(domain_count)
 	cat "${domains_work}" | pv -L "${rate}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | "${massdns_bin}" -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
 
-	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') domains validated!"
+	log_success "$(domain_count) valid domains"
 }
 
 write_output_files() {
@@ -411,6 +417,12 @@ main() {
 
 	if [[ "${skip_validation}" -eq 0 ]]; then
 		massdns_validate
+	fi
+
+	if [[ "${skip_wildcard_check}" -eq 0 ]]; then
+		log_message "Removing straggling wildcard results..."
+		filter_wildcards_from_answers
+		log_success "Found $(domain_count) valid domains!"
 	fi
 
 	write_output_files
