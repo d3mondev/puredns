@@ -86,14 +86,14 @@ log_success() {
 }
 
 domain_count() {
-	echo "$(wc -l "${domains_work}" | awk '{ print $1 }')"
+	echo "$(cat "${domains_work}" | wc -l)"
 }
 
 parse_args() {
 	massdns_bin="massdns"
 
 	resolvers_file="$(dirname $0)/resolvers.txt"
-	trusted_resolvers_file="$(dirname $0)/trusted.txt"
+	resolvers_trusted_file="$(dirname $0)/trusted.txt"
 
 	limit_rate=0
 	limit_rate_trusted=0
@@ -119,7 +119,7 @@ parse_args() {
 				shift
 				;;
 			--resolvers-trusted|-rt)
-				trusted_resolvers_file=$2
+				resolvers_trusted_file=$2
 				shift
 				;;
 			--limit|-l)
@@ -206,8 +206,8 @@ parse_args() {
 		exit 1
 	fi
 
-	if [[ "${skip_validation}" -eq 0 ]] && [[ ! -f "${trusted_resolvers_file}" ]]; then
-		echo "Error: unable to open trusted resolvers file ${trusted_resolvers_file}"
+	if [[ "${skip_validation}" -eq 0 ]] && [[ ! -f "${resolvers_trusted_file}" ]]; then
+		echo "Error: unable to open trusted resolvers file ${resolvers_trusted_file}"
 		echo ""
 		exit 1
 	fi
@@ -250,6 +250,10 @@ parse_args() {
 	fi
 
 	set -u
+
+	if [[ "${limit_rate_trusted}" -eq 0 ]]; then
+		limit_rate_trusted=$(( $(wc -l "${resolvers_trusted_file}" | awk '{ print $1 }') * 10 ))
+	fi
 }
 
 init() {
@@ -284,23 +288,45 @@ prepare_domains_list() {
 	log_success "$(domain_count) domains to resolve with massdns"
 }
 
-massdns_resolve() {
-	log_message "Invoking massdns... this can take some time"
+massdns_public() {
+	local domainfile=$1
+	local domains_outputfile=$2
+	local massdns_outputfile=$3
 
-	printf "${COL_PV}" >&2
+	invoke_massdns "${domainfile}" "${resolvers_file}" "${limit_rate}" "${domains_outputfile}" "${massdns_outputfile}"
+}
 
-	local count="$(domain_count)"
+massdns_trusted() {
+	local domainfile=$1
+	local domains_outputfile=$2
+	local massdns_outputfile=$3
+
+	invoke_massdns "${domainfile}" "${resolvers_trusted_file}" "${limit_rate_trusted}" "${domains_outputfile}" "${massdns_outputfile}"
+}
+
+invoke_massdns() {
+	local domains_file=$1
+	local resolvers=$2
+	local rate=$3
+	local domains_outputfile=$4
+	local massdns_outputfile=$5
+
+	local count="$(cat "${domains_file}" | wc -l)"
 
 	local pv_args=("-l" "-F" "Queries per seconds: %r %t %e Progress: %p" "-s" "${count}")
-	if [[ ! "${limit_rate}" -eq 0 ]]; then
-		pv_args+=("-L" "${limit_rate}")
+	if [[ ! "${rate}" -eq 0 ]]; then
+		pv_args+=("-L" "${rate}")
 	fi
 
-	cat "${domains_work}" | pv "${pv_args[@]}" | "${massdns_bin}" -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
-	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
-
+	printf "${COL_PV}" >&2
+	cat "${domains_file}" | pv "${pv_args[@]}" | "${massdns_bin}" -q -r "${resolvers}" -o S -t A -w "${massdns_outputfile}"
+	cat "${massdns_outputfile}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_outputfile}"
 	printf "${COL_RESET}" >&2
+}
 
+massdns_resolve() {
+	log_message "Invoking massdns... this can take some time"
+	massdns_public "${domains_work}" "${domains_work}" "${massdns_work}"
 	log_success "$(domain_count) domains returned a DNS answer"
 }
 
@@ -338,24 +364,8 @@ cleanup_wildcards() {
 }
 
 massdns_validate() {
-	local default_rate=$(( $(wc -l "${trusted_resolvers_file}" | awk '{ print $1 }') * 10 ))
-	local rate
-	if [[ ! "${limit_rate_trusted}" -eq 0 ]]; then
-		rate="${limit_rate_trusted}"
-	else
-		rate="${default_rate}"
-	fi
-
-	log_message "Validating domains against trusted resolvers... (rate limit: ${rate} queries per second)"
-
-	printf "${COL_PV}" >&2
-
-	local count=$(domain_count)
-	cat "${domains_work}" | pv -L "${rate}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | "${massdns_bin}" -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
-	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
-
-	printf "${COL_RESET}" >&2
-
+	log_message "Validating domains against trusted resolvers... (rate limit: ${limit_rate_trusted} queries per second)"
+	massdns_trusted "${domains_work}" "${domains_work}" "${massdns_work}"
 	log_success "$(domain_count) valid domains"
 }
 
