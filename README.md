@@ -1,5 +1,5 @@
 # puredns
-![puredns](https://user-images.githubusercontent.com/55468528/88879673-ea3a3800-d1f8-11ea-8540-7cb6d16144e3.png)
+![puredns](https://user-images.githubusercontent.com/55468528/88924057-b420a680-d240-11ea-8ff7-6fb988db8ec1.png)
 
 [massdns](https://github.com/blechschmidt/massdns) is an incredibly powerful DNS resolver used to perform bulk lookups. With the proper bandwidth and a good list of public resolvers, it can resolve millions of queries in just a few minutes.
 
