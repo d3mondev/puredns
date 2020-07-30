@@ -74,11 +74,12 @@ The script also requires a few other dependencies:
 
 * python3
 * pv
+* dnsutils
 
 To ensure the dependencies are installed on Ubuntu, you can use the following command line:
 
 ```
-sudo apt install -y python3 pv
+sudo apt install -y python3 pv dnsutils
 ```
 
 Once the dependencies are installed, simply clone the repository to start using puredns:
