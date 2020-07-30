@@ -102,26 +102,33 @@ def load_massdns_cache(filename):
 def get_parent(domain):
     return '.'.join(domain.split('.')[1:])
 
+def run_dig(record, domain):
+    cmd = 'dig +short ' + record + ' ' + domain
+    process = subprocess.Popen(['bash', '-c', cmd], stdout = subprocess.PIPE, universal_newlines = True)
+    stdout, stderr = process.communicate()
+
+    if process.returncode != 0:
+        print("Unable to run {0}".format(cmd))
+        exit(1)
+
+    answers = []
+    for line in stdout.splitlines():
+        answers.append(line.strip().rstrip('.'))
+
+    return answers
+
 def dns_resolve(domain):
     answers = []
     if domain in dns_cache:
         answers = dns_cache[domain]
     else:
-        cmd = 'dig +short ' + domain
-        process = subprocess.Popen(['bash', '-c', cmd], stdout = subprocess.PIPE, universal_newlines = True)
-        stdout, stderr = process.communicate()
-
-        if process.returncode != 0:
-            print("Unable to run {0}".format(cmd))
-            exit(1)
-
-        for line in stdout.splitlines():
-            answers.append(line.strip().rstrip('.'))
+        answers = run_dig('A', domain)
+        answers += run_dig('CNAME', domain)
 
         dns_cache[domain] = answers
 
         global dns_queries_count
-        dns_queries_count = dns_queries_count + 1
+        dns_queries_count = dns_queries_count + 2
 
     return answers
 
@@ -146,7 +153,7 @@ def get_wildcard_root(domain):
     for i in range(numparts - 1, 0, -1):
         parent = '.'.join(parts[i - 1:numparts])
         if is_wildcard_root(parent, domain):
-            return topmost
+            break
         topmost = parent
 
     return topmost
