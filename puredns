@@ -184,15 +184,6 @@ parse_args() {
 		shift
 	done
 
-	"${massdns_bin}" --help > /dev/null 2>&1
-	if [[ ! $? -eq 0 ]]; then
-		echo "Error: unable to execute massdns. Make sure it is present and that the"
-		echo "path to the binary is added to the PATH environment variable."
-		echo ""
-		echo "Alternatively, specify the path to massdns using --bin"
-		exit 1
-	fi
-
 	if [[ -z "${mode}" ]]; then
 		usage
 		echo ""
@@ -253,6 +244,34 @@ parse_args() {
 
 	if [[ "${limit_rate_trusted}" -eq 0 ]]; then
 		limit_rate_trusted=$(( $(wc -l "${resolvers_trusted_file}" | awk '{ print $1 }') * 10 ))
+	fi
+}
+
+check_requirements() {
+	# massdns
+	"${massdns_bin}" --help > /dev/null 2>&1
+	if [[ ! $? -eq 0 ]]; then
+		echo "Error: unable to execute massdns. Make sure it is present and that the"
+		echo "path to the binary is added to the PATH environment variable."
+		echo ""
+		echo "Alternatively, specify the path to massdns using --bin"
+		exit 1
+	fi
+
+	# pv
+	pv -V > /dev/null 2>&1
+	if [[ ! $? -eq 0 ]]; then
+		echo "Error: unable to execute pv. Make sure pv is installed."
+		echo "This might help: sudo apt-get install -y pv"
+		exit 1
+	fi
+
+	# dig
+	dig -v > /dev/null 2>&1
+	if [[ ! $? -eq 0 ]]; then
+		echo "Error: unable to execute dig. Make sure dnsutils is installed."
+		echo "This might help: sudo apt-get install -y dnsutils"
+		exit 1
 	fi
 }
 
@@ -414,8 +433,10 @@ cleanup() {
 
 main() {
 	parse_args $@
-	init
+	check_requirements
+
 	print_header
+	init
 
 	prepare_domains_list
 
