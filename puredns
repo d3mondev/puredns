@@ -39,7 +39,7 @@ usage() {
 	echo ""
 	echo "	Optional:"
 	echo "		-r,  --resolvers <filename>		Text file containing resolvers"
-	echo "		-tr, --trusted-resolvers <filename>	Text file containing trusted resolvers"
+	echo "		-rt, --resolvers-trusted <filename>	Text file containing trusted resolvers"
 	echo ""
 	echo "		-l,  --limit				Limit queries per second for public resolvers"
 	echo "							(default: unlimited)"
@@ -106,7 +106,7 @@ parse_args() {
 				resolvers_file=$2
 				shift
 				;;
-			--trusted-resolvers|-tr)
+			--resolvers-trusted|-rt)
 				trusted_resolvers_file=$2
 				shift
 				;;

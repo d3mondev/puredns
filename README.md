@@ -112,7 +112,7 @@ Usage:
 
         Optional:
                 -r,  --resolvers <filename>             Text file containing resolvers
-                -tr, --trusted-resolvers <filename>     Text file containing trusted resolvers
+                -rt, --resolvers-trusted <filename>     Text file containing trusted resolvers
 
                 -l,  --limit                            Limit queries per second for public resolvers
                                                         (default: unlimited)
@@ -200,9 +200,9 @@ puredns resolve domains.txt --write valid_domains.txt \
 
 You can use a custom list of resolvers with puredns. Simply pass the `-r` argument to the script.
 
-You can also specify a list of custom trusted resolvers with the `-tr` argument.
+You can also specify a list of custom trusted resolvers with the `-rt` argument.
 
-`puredns resolve domains.txt -r resolvers.txt -tr trusted.txt`
+`puredns resolve domains.txt -r resolvers.txt -rt trusted.txt`
 
 ## Resources
 
