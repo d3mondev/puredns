@@ -68,7 +68,11 @@ Only the resulting valid domains are sent to stdout so that you can pipe the res
 
 ## Installation
 
-puredns requires massdns to be installed on the host machine. [Follow the instructions](https://github.com/blechschmidt/massdns#compilation) to compile massdns on your system. For now, it also needs to be in accessible through the PATH environment variable. On most systems, a good place to copy the massdns executable is `/usr/local/bin`.
+puredns requires massdns to be installed on the host machine. [Follow the instructions](https://github.com/blechschmidt/massdns#compilation) to compile massdns on your system.
+
+If the path to the massdns binary is present in the PATH environment variable, puredns will work out of the box. On most systems, a good place to copy the massdns executable is `/usr/local/bin`.
+
+Otherwise, you will need to specify the path to the massdns binary file using the `--bin` command line argument.
 
 The script also requires a few other dependencies:
 
@@ -111,6 +115,8 @@ Usage:
                 bruteforce <wordlist> <domain>  Perform subdomain bruteforcing on a domain using a wordlist
 
         Optional:
+                -b,  --bin <path>                       Path to massdns binary file
+
                 -r,  --resolvers <filename>             Text file containing resolvers
                 -rt, --resolvers-trusted <filename>     Text file containing trusted resolvers
 
@@ -125,7 +131,7 @@ Usage:
                 -sw, --skip-wildcard-check              Do no perform wildcard detection and filtering
                 -sv, --skip-validation                  Do not validate massdns results using trusted resolvers
 
-                -w, --write <filename>                  Write valid domains to a file
+                -w,  --write <filename>                 Write valid domains to a file
                 -wm, --write-massdns <filename>         Write massdns results to a file
                 -ww, --write-wildcards <filename>       Write wildcard root subdomains to a file
                 -wa, --write-answers <filename>         Write wildcard DNS answers to a file

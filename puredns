@@ -38,6 +38,8 @@ usage() {
 	echo "		bruteforce <wordlist> <domain>	Perform subdomain bruteforcing on a domain using a wordlist"
 	echo ""
 	echo "	Optional:"
+	echo "		-b,  --bin <path>			Path to massdns binary file"
+	echo ""
 	echo "		-r,  --resolvers <filename>		Text file containing resolvers"
 	echo "		-rt, --resolvers-trusted <filename>	Text file containing trusted resolvers"
 	echo ""
@@ -52,7 +54,7 @@ usage() {
 	echo "		-sw, --skip-wildcard-check		Do no perform wildcard detection and filtering"
 	echo "		-sv, --skip-validation			Do not validate massdns results using trusted resolvers"
 	echo ""
-	echo "		-w, --write <filename>			Write valid domains to a file"
+	echo "		-w,  --write <filename>			Write valid domains to a file"
 	echo "		-wm, --write-massdns <filename>		Write massdns results to a file"
 	echo "		-ww, --write-wildcards <filename>	Write wildcard root subdomains to a file"
 	echo "		-wa, --write-answers <filename>		Write wildcard DNS answers to a file"
@@ -84,6 +86,8 @@ log_success() {
 }
 
 parse_args() {
+	massdns_bin="massdns"
+
 	resolvers_file="$(dirname $0)/resolvers.txt"
 	trusted_resolvers_file="$(dirname $0)/trusted.txt"
 
@@ -102,6 +106,10 @@ parse_args() {
 	set +u
 	while :; do
 		case $1 in
+			--bin|-b)
+				massdns_bin=$2
+				shift
+				;;
 			--resolvers|-r)
 				resolvers_file=$2
 				shift
@@ -171,6 +179,15 @@ parse_args() {
 		esac
 		shift
 	done
+
+	"${massdns_bin}" --help > /dev/null 2>&1
+	if [[ ! $? -eq 0 ]]; then
+		echo "Error: unable to execute massdns. Make sure it is present and that the"
+		echo "path to the binary is added to the PATH environment variable."
+		echo ""
+		echo "Alternatively, specify the path to massdns using --bin"
+		exit 1
+	fi
 
 	if [[ -z "${mode}" ]]; then
 		usage
@@ -275,7 +292,7 @@ massdns_resolve() {
 		pv_args+=("-L" "${limit_rate}")
 	fi
 
-	cat "${domains_work}" | pv "${pv_args[@]}" | massdns -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
+	cat "${domains_work}" | pv "${pv_args[@]}" | "${massdns_bin}" -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
@@ -328,7 +345,7 @@ massdns_validate() {
 	printf "${COL_PV}" >&2
 
 	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
-	cat "${domains_work}" | pv -L "${rate}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | massdns -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
+	cat "${domains_work}" | pv -L "${rate}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | "${massdns_bin}" -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
