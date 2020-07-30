@@ -114,11 +114,16 @@ Usage:
                 -r,  --resolvers <filename>             Text file containing resolvers
                 -tr, --trusted-resolvers <filename>     Text file containing trusted resolvers
 
+                -l,  --limit                            Limit queries per second for public resolvers
+                                                        (default: unlimited)
+                -lt, --limit-trusted                    Limit queries per second for trusted resolvers
+                                                        (default: 10 * number of trusted resolvers)
+
                 -ss, --skip-sanitize                    Do not sanitize the list of domains to test
                                                         By default, domains are set to lowercase and
                                                         only valid characters are kept
-                -sv, --skip-validation                  Do not validate massdns results using trusted resolvers
                 -sw, --skip-wildcard-check              Do no perform wildcard detection and filtering
+                -sv, --skip-validation                  Do not validate massdns results using trusted resolvers
 
                 -w, --write <filename>                  Write valid domains to a file
                 -wm, --write-massdns <filename>         Write massdns results to a file

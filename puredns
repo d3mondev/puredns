@@ -41,11 +41,16 @@ usage() {
 	echo "		-r,  --resolvers <filename>		Text file containing resolvers"
 	echo "		-tr, --trusted-resolvers <filename>	Text file containing trusted resolvers"
 	echo ""
+	echo "		-l,  --limit				Limit queries per second for public resolvers"
+	echo "							(default: unlimited)"
+	echo "		-lt, --limit-trusted			Limit queries per second for trusted resolvers"
+	echo "							(default: 10 * number of trusted resolvers)"
+	echo ""
 	echo "		-ss, --skip-sanitize			Do not sanitize the list of domains to test"
 	echo "							By default, domains are set to lowercase and"
 	echo "							only valid characters are kept"
-	echo "		-sv, --skip-validation			Do not validate massdns results using trusted resolvers"
 	echo "		-sw, --skip-wildcard-check		Do no perform wildcard detection and filtering"
+	echo "		-sv, --skip-validation			Do not validate massdns results using trusted resolvers"
 	echo ""
 	echo "		-w, --write <filename>			Write valid domains to a file"
 	echo "		-wm, --write-massdns <filename>		Write massdns results to a file"
@@ -82,6 +87,9 @@ parse_args() {
 	resolvers_file="$(dirname $0)/resolvers.txt"
 	trusted_resolvers_file="$(dirname $0)/trusted.txt"
 
+	limit_rate=0
+	limit_rate_trusted=0
+
 	skip_validation=0
 	skip_wildcard_check=0
 	skip_sanitize=0
@@ -100,6 +108,14 @@ parse_args() {
 				;;
 			--trusted-resolvers|-tr)
 				trusted_resolvers_file=$2
+				shift
+				;;
+			--limit|-l)
+				limit_rate=$2
+				shift
+				;;
+			--limit-trusted|-lt)
+				limit_rate_trusted=$2
 				shift
 				;;
 			--skip-sanitize|-ss)
@@ -253,7 +269,13 @@ massdns_resolve() {
 	printf "${COL_PV}" >&2
 
 	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
-	cat "${domains_work}" | pv -l -F "Queries per seconds: %r %t %e Progress: %p" -s "${count}" | massdns -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
+
+	local pv_args=("-l" "-F" "Queries per seconds: %r %t %e Progress: %p" "-s" "${count}")
+	if [[ ! "${limit_rate}" -eq 0 ]]; then
+		pv_args+=("-L" "${limit_rate}")
+	fi
+
+	cat "${domains_work}" | pv "${pv_args[@]}" | massdns -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
@@ -293,13 +315,20 @@ cleanup_wildcards() {
 }
 
 massdns_validate() {
-	local ratelimit=$(( $(wc -l "${trusted_resolvers_file}" | awk '{ print $1 }') * 10 ))
-	log_message "Validating domains against trusted resolvers... (rate limit: ${ratelimit} queries per second)"
+	local default_rate=$(( $(wc -l "${trusted_resolvers_file}" | awk '{ print $1 }') * 10 ))
+	local rate
+	if [[ ! "${limit_rate_trusted}" -eq 0 ]]; then
+		rate="${limit_rate_trusted}"
+	else
+		rate="${default_rate}"
+	fi
+
+	log_message "Validating domains against trusted resolvers... (rate limit: ${rate} queries per second)"
 
 	printf "${COL_PV}" >&2
 
 	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
-	cat "${domains_work}" | pv -L "${ratelimit}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | massdns -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
+	cat "${domains_work}" | pv -L "${rate}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | massdns -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
