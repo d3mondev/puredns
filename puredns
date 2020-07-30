@@ -253,7 +253,7 @@ massdns_resolve() {
 	printf "${COL_PV}" >&2
 
 	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
-	cat "${domains_work}" | pv -l -F "Queries per seconds: %r %e Progress: %p" -s "${count}" | massdns -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
+	cat "${domains_work}" | pv -l -F "Queries per seconds: %r %t %e Progress: %p" -s "${count}" | massdns -q -r "${resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
@@ -289,7 +289,7 @@ cleanup_wildcards() {
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' >> "${tempfile_work}"
 	cat "${tempfile_work}" | sort -u > "${domains_work}"
 
-	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') non-wildcard domains remaining."
+	log_success "$(wc -l "${domains_work}" | awk '{ print $1 }') non-wildcard domains remaining"
 }
 
 massdns_validate() {
@@ -299,7 +299,7 @@ massdns_validate() {
 	printf "${COL_PV}" >&2
 
 	local count=$(wc -l ${domains_work} | awk '{ print $1 }')
-	cat "${domains_work}" | pv -L "${ratelimit}" -l -F "Queries per second: %r %e Progress: %p" -s "${count}" | massdns -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
+	cat "${domains_work}" | pv -L "${ratelimit}" -l -F "Queries per second: %r %t %e Progress: %p" -s "${count}" | massdns -q -r "${trusted_resolvers_file}" -o S -t A -w "${massdns_work}"
 	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 
 	printf "${COL_RESET}" >&2
