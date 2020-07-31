@@ -89,6 +89,10 @@ domain_count() {
 	echo "$(cat "${domains_work}" | wc -l)"
 }
 
+wildcard_count() {
+	echo "$(cat "${wildcards_work}" | wc -l)"
+}
+
 parse_args() {
 	massdns_bin="massdns"
 
@@ -276,12 +280,15 @@ check_requirements() {
 }
 
 init() {
-	domains_work=$(mktemp)
-	massdns_work=$(mktemp)
-	tempfile_work=$(mktemp)
-	wildcards_work=$(mktemp)
-	wildcard_answers_work=$(mktemp)
-	wildcard_valid_roots_work=$(mktemp)
+	tempdir="$(mktemp -d -t puredns.XXXXXXXX)"
+
+	domains_work="${tempdir}/domains.txt"
+	massdns_work="${tempdir}/massdns.txt"
+	tempfile_work="${tempdir}/tempfile.txt"
+
+	wildcards_work="${tempdir}/wildcards.txt"
+	wildcard_answers_work="${tempdir}/wildcard_answers.txt"
+	wildcard_resolving_roots_work="${tempdir}/wildcard_resolving_roots.txt"
 }
 
 prepare_domains_list() {
@@ -350,42 +357,53 @@ massdns_resolve() {
 }
 
 filter_wildcards_from_answers() {
-	grep -vf "${wildcard_answers_work}" "${massdns_work}" > "${tempfile_work}"
+	domains_grep_file="${tempdir}/wildcard_domains_grep"
+	answers_grep_file="${tempdir}/wildcard_answers_grep"
+	badrecords_file="${tempdir}/wildcard_badrecords"
+
+	# Create a grep file to match only the entries ending with a wildcard subdomains
+	sed -E 's/^\*\.(.*)$/.\1. /' "${wildcards_work}" > "${domains_grep_file}"
+
+	# Create a grep file to match only wildcard answers
+	sed -E 's/^(.*)$/ \1/' "${wildcard_answers_work}" > "${answers_grep_file}"
+
+	# Create a list of all the bad records
+	grep -Ff "${domains_grep_file}" "${massdns_work}" | grep -Ff "${answers_grep_file}" | sort -u > "${badrecords_file}"
+
+	# Remove bad records from massdns results file
+	sort -u "${massdns_work}" > "${tempfile_work}"
+	comm -2 -3 "${tempfile_work}" "${badrecords_file}" > "${massdns_work}"
+
+	# Add back known wildcard root subdomains that may have been filtered out
+	cat "${massdns_work}" "${wildcard_resolving_roots_work}" | sort -u > ${tempfile_work}
 	cp "${tempfile_work}" "${massdns_work}"
 
-	# Extract valid domains and add back valid wildcard roots
-	cat "${wildcard_valid_roots_work}" > "${tempfile_work}"
-	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' >> "${tempfile_work}"
-	cat "${tempfile_work}" | sort -u > "${domains_work}"
+	# Extract valid domains
+	cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_work}"
 }
 
 cleanup_wildcards() {
 	log_message "Detecting wildcard root subdomains..."
 	$(dirname $0)/wildcarder --load-massdns-cache "${massdns_work}" --write-domains "${wildcards_work}" --write-answers "${wildcard_answers_work}" "${domains_work}" > /dev/null
 
-	local count=$(wc -l "${wildcards_work}" | awk '{ printf $1 }')
-	log_success "${count} wildcard root subdomains found"
-	if [[ ! "${count}" -eq 0 ]]; then
+	log_success "$(wildcard_count) wildcard root subdomains found"
+	if [[ ! "$(wildcard_count)" -eq 0 ]]; then
 		cat "${wildcards_work}" >&2
+
+		log_message "Resolving wildcards with trusted resolvers..."
+		sed -i 's/^\*\.//' "${wildcards_work}"
+		massdns_trusted "${wildcards_work}" "${tempfile_work}" "${wildcard_resolving_roots_work}"
+		log_success "Found $(cat "${wildcard_resolving_roots_work}" | wc -l) valid DNS answers for wildcards"
+
+		log_message "Cleaning wildcards from results..."
+		filter_wildcards_from_answers
+		log_success "$(domain_count) domains remaining"
 	fi
-
-	log_message "Cleaning wildcards from results..."
-
-	# Backup wildcard roots that resolve
-	local wildcard_root
-	while read wildcard_root; do
-		wildcard_root=$(echo "${wildcard_root}" | sed 's/\*\.//')
-		cat "${massdns_work}" | awk -F '. ' '{ print $1 }' | grep "^${wildcard_root}$" >> "$wildcard_valid_roots_work"
-	done < "${wildcards_work}"
-
-	filter_wildcards_from_answers
-	log_success "$(domain_count) non-wildcard domains remaining"
 }
 
 massdns_validate() {
 	log_message "Validating domains against trusted resolvers... (rate limit: ${limit_rate_trusted} queries per second)"
 	massdns_trusted "${domains_work}" "${domains_work}" "${massdns_work}"
-	log_success "$(domain_count) valid domains"
 }
 
 write_output_files() {
@@ -403,6 +421,7 @@ write_output_files() {
 
 	if [[ -n "${wildcards_file}" ]]; then
 		cp "${wildcards_work}" "${wildcards_file}"
+		sed -Ei 's/(.*)/*.\1/' "${wildcards_file}"
 	fi
 
 	if [[ -n "${wildcard_answers_file}" ]]; then
@@ -412,22 +431,11 @@ write_output_files() {
 
 cleanup() {
 	debug=0
-
 	if [[ "${debug}" -eq 1 ]]; then
-		echo ""
-		echo "domains_work:			${domains_work}"
-		echo "massdns_work:			${massdns_work}"
-		echo "tempfile_work:			${tempfile_work}"
-		echo "wildcards_work:			${wildcards_work}"
-		echo "wildcard_answers_work:		${wildcard_answers_work}"
-		echo "wildcard_valid_roots_work:	${wildcard_valid_roots_work}"
+		echo "" >&2
+		echo "Intermediary files are in ${tempdir}" >&2
 	else
-		rm "${domains_work}"
-		rm "${massdns_work}"
-		rm "${tempfile_work}"
-		rm "${wildcards_work}"
-		rm "${wildcard_answers_work}"
-		rm "${wildcard_valid_roots_work}"
+		rm -rf "${tempdir}"
 	fi
 }
 
@@ -450,11 +458,12 @@ main() {
 		massdns_validate
 	fi
 
-	if [[ "${skip_wildcard_check}" -eq 0 ]]; then
+	if [[ "${skip_wildcard_check}" -eq 0 ]] && [[ ! "$(wildcard_count)" -eq 0 ]]; then
 		log_message "Removing straggling wildcard results..."
 		filter_wildcards_from_answers
-		log_success "Found $(domain_count) valid domains!"
 	fi
+
+	log_success "Found $(domain_count) valid domains!"
 
 	write_output_files
 
