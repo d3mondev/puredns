@@ -13,6 +13,8 @@ COL_MESSAGE='\033[0;36m'
 COL_MESSAGE_TEXT='\033[0;37m'
 COL_SUCCESS='\033[1;32m'
 COL_SUCCESS_TEXT='\033[0;37m'
+COL_ERROR='\033[0;31m'
+COL_ERROR_TEXT='\033[0;37m'
 COL_TEXT='\033[1;37m'
 COL_PV='\033[1;30m'
 COL_RESET='\033[0m'
@@ -85,12 +87,16 @@ log_success() {
 	printf "${COL_META}[${COL_SUCCESS}!${COL_META}] ${COL_SUCCESS_TEXT}$1${COL_RESET}\n" >&2
 }
 
+log_error() {
+	printf "${COL_META}[${COL_ERROR}!${COL_META}] ${COL_ERROR_TEXT}$1${COL_RESET}\n" >&2
+}
+
 domain_count() {
-	echo "$(cat "${domains_work}" | wc -l)"
+	echo "$(cat "${domains_work}" | wc -l)" 2>/dev/null
 }
 
 wildcard_count() {
-	echo "$(cat "${wildcards_work}" | wc -l)"
+	echo "$(cat "${wildcards_work}" | wc -l)" 2>/dev/null
 }
 
 parse_args() {
@@ -384,7 +390,14 @@ filter_wildcards_from_answers() {
 
 cleanup_wildcards() {
 	log_message "Detecting wildcard root subdomains..."
+
 	$(dirname $0)/wildcarder --load-massdns-cache "${massdns_work}" --write-domains "${wildcards_work}" --write-answers "${wildcard_answers_work}" "${domains_work}" > /dev/null
+
+	if [[ ! $? -eq 0 ]]; then
+		log_error "An error happened running wildcarder. Exiting..."
+		cleanup
+		exit 1
+	fi
 
 	log_success "$(wildcard_count) wildcard root subdomains found"
 	if [[ ! "$(wildcard_count)" -eq 0 ]]; then
