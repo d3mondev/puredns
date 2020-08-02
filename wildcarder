@@ -5,13 +5,88 @@ import subprocess
 import random
 import string
 import re
+import threading
+from collections import deque
+from time import sleep
 import dns.message
 import dns.query
 
 test_subdomain = ''.join(random.choice(string.ascii_lowercase) for i in range(16))
-dns_cache = {}
 known_wildcard_answers = {}
-dns_queries_count = 0
+work_queue = deque()
+lock = threading.Lock()
+
+class Resolver():
+    queue = []
+    cache = {}
+    queries_count = 0
+    lock = threading.Lock()
+
+    def query(self, domain):
+        self.lock.acquire()
+        resolve = False
+        if (not domain in self.queue) and (not domain in self.cache):
+            resolve = True
+            self.queue.append(domain)
+        self.lock.release()
+
+        if resolve:
+            answers = self.__resolve(domain, 'A')
+            answers += self.__resolve(domain, 'CNAME')
+            self.cache[domain] = answers
+            self.queue.remove(domain)
+        else:
+            while domain in self.queue:
+                sleep(1)
+
+        return self.cache[domain]
+
+    def add_entry(self, domain, answers):
+        if domain in self.cache:
+            self.cache[domain].append(answers)
+        else:
+            self.cache[domain] = [answers]
+
+    def __resolve(self, name, query_type):
+        answers = []
+
+        for i in range(5):
+            exception = None
+            try:
+                request = dns.message.make_query(name, query_type)
+                response = dns.query.udp(request, '8.8.8.8', timeout=10)
+                break
+            except Exception as e:
+                exception = e
+
+        if exception != None:
+            print("Error resolving {0} {1}: {2}".format(query_type, name, last))
+            exit(1)
+
+        for answer in response.answer:
+            lines = str(answer).splitlines()
+            for line in lines:
+                regex = "[0-9a-zA-Z\.\-]+\.\s+[0-9]+\s+IN\s+(CNAME|A|AAAA)\s+([0-9a-zA-Z\.\-]+)"
+                match = re.match(regex, line)
+                if (match):
+                    result = match.group(2).rstrip('.')
+                    answers.append(result)
+        self.lock.acquire()
+        self.queries_count += 1
+        self.lock.release()
+
+        return answers
+
+resolver = Resolver()
+
+def wildcard_thread():
+    while True:
+        try:
+            domain = work_queue.popleft()
+        except IndexError:
+            break
+
+        process_domain(domain)
 
 def print_banner():
     print("wildcarder v1.0")
@@ -38,7 +113,7 @@ def print_results():
         print(answer)
     print("")
 
-    print("Finished with {0} DNS queries".format(dns_queries_count))
+    print("Finished with {0} DNS queries".format(resolver.queries_count))
 
 def save_domains(filename):
     try:
@@ -94,57 +169,16 @@ def load_massdns_cache(filename):
 
         domain = entry[0].rstrip('.')
         answer = entry[2].rstrip('.')
-       
-        if domain in dns_cache:
-            dns_cache[domain].append(answer)
-        else:
-            dns_cache[domain] = [answer]
+
+        resolver.add_entry(domain, answer)
 
     massdns_file.close()
 
 def get_parent(domain):
     return '.'.join(domain.split('.')[1:])
 
-def resolve(name: str, query_type: str):
-    answers = []
-
-    for i in range(5):
-        exception = None
-        try:
-            request = dns.message.make_query(name, query_type)
-            response = dns.query.udp(request, '8.8.8.8', timeout=10)
-            break
-        except Exception as e:
-            exception = e
-
-    if exception != None:
-        print("Error resolving {0} {1}: {2}".format(query_type, name, last))
-        exit(1)
-
-    for answer in response.answer:
-        lines = str(answer).splitlines()
-        for line in lines:
-            regex = "[0-9a-zA-Z\.\-]+\.\s+[0-9]+\s+IN\s+(CNAME|A|AAAA)\s+([0-9a-zA-Z\.\-]+)"
-            match = re.match(regex, line)
-            if (match):
-                result = match.group(2).rstrip('.')
-                answers.append(result)
-
-    return answers
-
 def dns_resolve(domain):
-    answers = []
-    if domain in dns_cache:
-        answers = dns_cache[domain]
-    else:
-        answers = resolve(domain, 'A')
-        answers += resolve(domain, 'CNAME')
-
-        dns_cache[domain] = answers
-
-        global dns_queries_count
-        dns_queries_count = dns_queries_count + 2
-
+    answers = resolver.query(domain)
     return answers
 
 def is_wildcard_root(parent, domain):
@@ -174,15 +208,18 @@ def get_wildcard_root(domain):
     return topmost
 
 def answer_is_wildcard(domain, answer):
+    lock.acquire()
     if answer in known_wildcard_answers:
         # Look if there is already a root domain in the known wildcard answers
         for wildcard_answer in known_wildcard_answers:
             for root_domain in known_wildcard_answers[wildcard_answer]:
                 if domain.endswith('.' + root_domain):
+                    lock.release()
                     return True
+    lock.release()
     return False
 
-def process_domains_from_file(filename):
+def process_domains_from_file(filename, threads):
     try:
         input_file = open(filename, 'r')
     except:
@@ -193,9 +230,19 @@ def process_domains_from_file(filename):
         domain = line.strip()
         if domain == '':
             continue
-        process_domain(domain)
+        work_queue.append(domain)
 
     input_file.close()
+
+    threadpool = []
+    for i in range(threads):
+        threadpool.append(threading.Thread(target=wildcard_thread))
+
+    for thread in threadpool:
+        thread.start()
+
+    for thread in threadpool:
+        thread.join()
 
 def process_domain(domain):
     answers = dns_resolve(domain)
@@ -215,20 +262,23 @@ def process_domain(domain):
     if answers[0] in test_answers:
         root_domain = get_wildcard_root(domain)
         # Add the root wildcard domain to the list of known wildcard answers
+        lock.acquire()
         for answer in test_answers:
             if answer in known_wildcard_answers:
                 known_wildcard_answers[answer].append(root_domain)
             else:
                 known_wildcard_answers[answer] = [root_domain]
+        lock.release()
         return True
 
     return False
 
 def main():
     parser = argparse.ArgumentParser(description = 'Find wildcards from a list of subdomains, optionally loading a massdns simple text output file to reduce number of DNS queries.')
-    parser.add_argument('--load-massdns-cache', dest = 'massdns_file', metavar = 'massdns.txt', help = "load a DNS cache from a massdns output file (-oS)")
-    parser.add_argument('--write-domains', dest = 'domains_file', metavar = 'domains.txt', help = "write wildcard domains to file")
-    parser.add_argument('--write-answers', dest = 'answers_file', metavar = 'answers.txt', help = "write wildcard DNS answers to file")
+    parser.add_argument('--threads', dest = 'threads', type = int, metavar = 'N', default = 10, help = 'number of domains to process simultaneously (default: 10)')
+    parser.add_argument('--load-massdns-cache', dest = 'massdns_file', metavar = 'file', help = "load a DNS cache from a massdns output file (-oS)")
+    parser.add_argument('--write-domains', dest = 'domains_file', metavar = 'file', help = "write wildcard domains to file")
+    parser.add_argument('--write-answers', dest = 'answers_file', metavar = 'file', help = "write wildcard DNS answers to file")
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('file', type = str, help = "file containing list of subdomains")
     args = parser.parse_args()
@@ -238,7 +288,7 @@ def main():
     if args.massdns_file != None:
         load_massdns_cache(args.massdns_file)
 
-    process_domains_from_file(args.file)
+    process_domains_from_file(args.file, args.threads)
 
     print_results()
 
