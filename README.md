@@ -77,14 +77,16 @@ Otherwise, you will need to specify the path to the massdns binary file using th
 The script also requires a few other dependencies:
 
 * python3
+* python3-dnspython
 * pv
-* dnsutils
 
 To ensure the dependencies are installed on Ubuntu, you can use the following command line:
 
 ```
-sudo apt install -y python3 pv dnsutils
+sudo apt install -y python3 python3-dnspython pv
 ```
+
+
 
 Once the dependencies are installed, simply clone the repository to start using puredns:
 

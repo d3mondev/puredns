@@ -88,7 +88,7 @@ log_success() {
 }
 
 log_error() {
-	printf "${COL_META}[${COL_ERROR}!${COL_META}] ${COL_ERROR_TEXT}$1${COL_RESET}\n" >&2
+	printf "${COL_META}[${COL_ERROR}X${COL_META}] ${COL_ERROR_TEXT}$1${COL_RESET}\n" >&2
 }
 
 domain_count() {
@@ -272,15 +272,17 @@ check_requirements() {
 	pv -V > /dev/null 2>&1
 	if [[ ! $? -eq 0 ]]; then
 		echo "Error: unable to execute pv. Make sure pv is installed."
+		echo ""
 		echo "This might help: sudo apt-get install -y pv"
 		exit 1
 	fi
 
-	# dig
-	dig -v > /dev/null 2>&1
+	# wildcarder
+	$(dirname $0)/wildcarder --version > /dev/null 2>&1
 	if [[ ! $? -eq 0 ]]; then
-		echo "Error: unable to execute dig. Make sure dnsutils is installed."
-		echo "This might help: sudo apt-get install -y dnsutils"
+		echo "Error: unable to execute wildcarder. Make sure it is present and that the requirements have been installed."
+		echo ""
+		echo "This might help: pip install -r requirements.txt"
 		exit 1
 	fi
 }

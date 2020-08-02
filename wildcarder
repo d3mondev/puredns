@@ -4,6 +4,9 @@ import argparse
 import subprocess
 import random
 import string
+import re
+import dns.message
+import dns.query
 
 test_subdomain = ''.join(random.choice(string.ascii_lowercase) for i in range(16))
 dns_cache = {}
@@ -102,18 +105,30 @@ def load_massdns_cache(filename):
 def get_parent(domain):
     return '.'.join(domain.split('.')[1:])
 
-def run_dig(record, domain):
-    cmd = 'dig +short @8.8.8.8 ' + record + ' ' + domain
-    process = subprocess.Popen(['bash', '-c', cmd], stdout = subprocess.PIPE, universal_newlines = True)
-    stdout, stderr = process.communicate()
+def resolve(name: str, query_type: str):
+    answers = []
 
-    if process.returncode != 0:
-        print("Unable to run {0}".format(cmd))
+    for i in range(5):
+        exception = None
+        try:
+            request = dns.message.make_query(name, query_type)
+            response = dns.query.udp(request, '8.8.8.8', timeout=10)
+            break
+        except Exception as e:
+            exception = e
+
+    if exception != None:
+        print("Error resolving {0} {1}: {2}".format(query_type, name, last))
         exit(1)
 
-    answers = []
-    for line in stdout.splitlines():
-        answers.append(line.strip().rstrip('.'))
+    for answer in response.answer:
+        lines = str(answer).splitlines()
+        for line in lines:
+            regex = "[0-9a-zA-Z\.\-]+\.\s+[0-9]+\s+IN\s+(CNAME|A|AAAA)\s+([0-9a-zA-Z\.\-]+)"
+            match = re.match(regex, line)
+            if (match):
+                result = match.group(2).rstrip('.')
+                answers.append(result)
 
     return answers
 
@@ -122,8 +137,8 @@ def dns_resolve(domain):
     if domain in dns_cache:
         answers = dns_cache[domain]
     else:
-        answers = run_dig('A', domain)
-        answers += run_dig('CNAME', domain)
+        answers = resolve(domain, 'A')
+        answers += resolve(domain, 'CNAME')
 
         dns_cache[domain] = answers
 
