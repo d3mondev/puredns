@@ -112,7 +112,7 @@ parse_args() {
 	skip_wildcard_check=0
 	skip_sanitize=0
 
-	domains_file=''
+	output_file=''
 	massdns_file=''
 	wildcards_file=''
 	wildcard_answers_file=''
@@ -150,7 +150,7 @@ parse_args() {
 				skip_wildcard_check=1
 				;;
 			--write|-w)
-				domains_file=$2
+				output_file=$2
 				shift
 				;;
 			--write-massdns|-wm)
@@ -426,8 +426,8 @@ write_output_files() {
 
 	cat ${domains_work}
 
-	if [[ -n "${domains_file}" ]]; then
-		cp "${domains_work}" "${domains_file}"
+	if [[ -n "${output_file}" ]]; then
+		cp "${domains_work}" "${output_file}"
 	fi
 
 	if [[ -n "${massdns_file}" ]]; then
