@@ -60,8 +60,8 @@ class Resolver():
                 exception = e
 
         if exception != None:
-            print("Error resolving {0} {1}: {2}".format(query_type, name, last))
-            exit(1)
+            print("Error resolving {0} {1}: {2}".format(query_type, name, exception))
+            return answers
 
         for answer in response.answer:
             lines = str(answer).splitlines()
