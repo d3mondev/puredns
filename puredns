@@ -1,7 +1,7 @@
 #!/bin/bash
 
 program_name="puredns"
-program_version="v1.0"
+program_version="v1.0.2"
 program_description="Very accurate massdns resolving and bruteforcing."
 
 COL_LOGO='\033[0;36m'
@@ -20,7 +20,7 @@ COL_PV='\033[1;30m'
 COL_RESET='\033[0m'
 
 help() {
-	echo "puredns v1.0"
+	echo "puredns ${program_version}"
 	echo "Use massdns to accurately resolve a large amount of subdomains and extract wildcard domains."
 	echo ""
 	usage
@@ -73,7 +73,7 @@ print_header() {
 	printf '| |_) | |_| | | |  __/ (_| | | | \__ \\\n' >&2
 	printf '| .__/ \__,_|_|  \___|\__,_|_| |_|___/\n' >&2
 	printf '| |                                   \n' >&2
-	printf "|_|                       ${COL_PROGNAME}${program_name} ${COL_PROGVERS}${program_version}\\n" >&2
+	printf "|_|                     ${COL_PROGNAME}${program_name} ${COL_PROGVERS}${program_version}\\n" >&2
 	printf '\n' >&2
 	printf "${COL_PROGDESC}${program_description}\n" >&2
 	printf "${COL_RESET}\n" >&2
