@@ -1,7 +1,7 @@
 #!/bin/bash
 
 program_name="puredns"
-program_version="v1.0.2"
+program_version="v1.0.3"
 program_description="Very accurate massdns resolving and bruteforcing."
 
 COL_LOGO='\033[0;36m'
@@ -48,7 +48,7 @@ usage() {
 	echo "		-l,  --limit				Limit queries per second for public resolvers"
 	echo "							(default: unlimited)"
 	echo "		-lt, --limit-trusted			Limit queries per second for trusted resolvers"
-	echo "							(default: 10 * number of trusted resolvers)"
+	echo "							(default: 50 * number of trusted resolvers)"
 	echo ""
 	echo "		-ss, --skip-sanitize			Do not sanitize the list of domains to test"
 	echo "							By default, domains are set to lowercase and"
@@ -253,7 +253,7 @@ parse_args() {
 	set -u
 
 	if [[ "${limit_rate_trusted}" -eq 0 ]]; then
-		limit_rate_trusted=$(( $(wc -l "${resolvers_trusted_file}" | awk '{ print $1 }') * 10 ))
+		limit_rate_trusted=$(( $(wc -l "${resolvers_trusted_file}" | awk '{ print $1 }') * 50 ))
 	fi
 }
 
@@ -348,12 +348,14 @@ invoke_massdns() {
 	local count="$(cat "${domains_file}" | wc -l)"
 
 	local pv_args=("-l" "-F" "Queries per seconds: %r %t %e Progress: %p" "-s" "${count}")
+	local massdns_args=()
 	if [[ ! "${rate}" -eq 0 ]]; then
 		pv_args+=("-L" "${rate}")
+		massdns_args=("-s" "${rate}")
 	fi
 
 	printf "${COL_PV}" >&2
-	cat "${domains_file}" | pv "${pv_args[@]}" | "${massdns_bin}" -q -r "${resolvers}" -o S -t A -w "${massdns_outputfile}"
+	cat "${domains_file}" | pv "${pv_args[@]}" | "${massdns_bin}" -q -r "${resolvers}" -o S -t A -w "${massdns_outputfile}" "${massdns_args[@]}"
 	cat "${massdns_outputfile}" | awk -F '. ' '{ print $1 }' | sort -u > "${domains_outputfile}"
 	printf "${COL_RESET}" >&2
 }
