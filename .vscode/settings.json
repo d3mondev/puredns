@@ -1,0 +1,5 @@
+{
+    "gopls": {
+    "buildFlags": ["-tags=no_hashing"],
+  }
+}
