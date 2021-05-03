@@ -1,0 +1,7 @@
+/puredns
+/__debug_bin
+/.vscode/launch.json
+*.swp
+*.prof
+*.mprof
+cover.out
