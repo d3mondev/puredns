@@ -175,7 +175,7 @@ At this point, the resulting files should be clean of wildcard subdomains and DN
 
 ### How do I get resolvers for use with puredns?
 
-The best way to obtain a list of public resolvers is to get one from [public-dns.info](https://public-dns.info/nameservers-all.txt), then use the [DNS Validator](https://github.com/vortexau/_dnsvalidator) project to keep only resolvers that provide valid answers.
+The best way to obtain a list of public resolvers is to get one from [public-dns.info](https://public-dns.info/nameservers-all.txt), then use the [DNS Validator](https://github.com/vortexau/dnsvalidator) project to keep only resolvers that provide valid answers.
 
 If your public resolvers provide incorrect information to puredns, for example by sending back poisoned replies, some subdomains can be missed as they will get filtered out. ***Hint:*** *Avoid resolvers from countries that censor the internet, like China.*
 
