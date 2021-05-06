@@ -33,7 +33,7 @@ func newStubService(t *testing.T) (*Service, stubs) {
 
 	service := &Service{
 		Context: ctx.NewCtx(),
-		Options: ctx.NewResolveOptions(),
+		Options: ctx.DefaultResolveOptions(),
 
 		RequirementChecker: stubs.spyRequirementChecker,
 		WorkfileCreator:    stubs.fakeWorkfileCreator,
@@ -108,11 +108,13 @@ func (s *spyResolverLoader) Load(*ctx.Ctx, string) error {
 type spyMassResolver struct {
 	called    int
 	resolvers string
+	ratelimit int
 }
 
 func (s *spyMassResolver) Resolve(r io.Reader, output string, total int, resolvers string, qps int) error {
 	s.called++
 	s.resolvers = resolvers
+	s.ratelimit = qps
 	return nil
 }
 

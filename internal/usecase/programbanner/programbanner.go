@@ -44,7 +44,7 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 	s.Print()
 	console.Printf(console.ColorBrightWhite + "------------------------------------------------------------\n" + console.ColorReset)
 
-	defaultOptions := ctx.NewResolveOptions()
+	defaultOptions := ctx.DefaultResolveOptions()
 
 	var file string
 	if s.ctx.Stdin != nil {
@@ -75,17 +75,25 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 		console.Printf("%s File                 :%s %s\n", tickSymbol, colorOptionValue, file)
 	}
 
-	console.Printf("%s Resolvers            :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverFile)
+	if opts.NoPublicResolvers {
+		console.Printf("%s No-Public            :%s true\n", tickSymbol, colorOptionValue)
+	}
+
+	if !opts.NoPublicResolvers {
+		console.Printf("%s Resolvers            :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverFile)
+	}
 
 	if opts.ResolverTrustedFile != defaultOptions.ResolverTrustedFile {
 		console.Printf("%s Trusted Resolvers    :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverTrustedFile)
 	}
 
-	rate := "unlimited"
-	if opts.RateLimit != 0 {
-		rate = fmt.Sprintf("%d qps", opts.RateLimit)
+	if !opts.NoPublicResolvers {
+		rate := "unlimited"
+		if opts.RateLimit != 0 {
+			rate = fmt.Sprintf("%d qps", opts.RateLimit)
+		}
+		console.Printf("%s Rate Limit           :%s %s\n", tickSymbol, colorOptionValue, rate)
 	}
-	console.Printf("%s Rate Limit           :%s %s\n", tickSymbol, colorOptionValue, rate)
 
 	console.Printf("%s Rate Limit (Trusted) :%s %d qps\n", tickSymbol, colorOptionValue, opts.RateLimitTrusted)
 	console.Printf("%s Wildcard Threads     :%s %d\n", tickSymbol, colorOptionValue, opts.WildcardThreads)
@@ -115,8 +123,10 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 		console.Printf("%s[+] Skip Wildcard Detection\n", colorOptionSkipLabel)
 	}
 
-	if opts.SkipValidation {
-		console.Printf("%s[+] Skip Validation\n", colorOptionSkipLabel)
+	if !opts.NoPublicResolvers {
+		if opts.SkipValidation {
+			console.Printf("%s[+] Skip Validation\n", colorOptionSkipLabel)
+		}
 	}
 
 	console.Printf(console.ColorBrightWhite + "------------------------------------------------------------\n" + console.ColorReset)

@@ -46,6 +46,10 @@ func runBruteforce(cmd *cobra.Command, args []string) error {
 
 	resolveOptions.Mode = 1
 
+	if err := resolveOptions.Validate(); err != nil {
+		return err
+	}
+
 	bannerService := programbanner.NewService(context)
 	resolveService := resolve.NewService(context, resolveOptions)
 
