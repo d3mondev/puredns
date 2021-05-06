@@ -23,6 +23,6 @@ func NewCtx() *Ctx {
 		ProgramVersion: app.AppVersion,
 		ProgramTagline: app.AppDesc,
 
-		Options: NewGlobalOptions(),
+		Options: DefaultGlobalOptions(),
 	}
 }

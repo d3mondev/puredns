@@ -6,8 +6,8 @@ type GlobalOptions struct {
 	Quiet            bool
 }
 
-// NewGlobalOptions creates a new GlobalOptions struct with default values.
-func NewGlobalOptions() *GlobalOptions {
+// DefaultGlobalOptions creates a new GlobalOptions struct with default values.
+func DefaultGlobalOptions() *GlobalOptions {
 	return &GlobalOptions{
 		TrustedResolvers: []string{
 			"8.8.8.8",

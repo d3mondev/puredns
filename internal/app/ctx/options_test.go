@@ -6,6 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDefaultGlobalOptions(t *testing.T) {
+	opts := DefaultGlobalOptions()
+	assert.NotNil(t, opts)
+}
+
 func TestResolveOptionsValidate_OK(t *testing.T) {
 	have := DefaultResolveOptions()
 	want := DefaultResolveOptions()
