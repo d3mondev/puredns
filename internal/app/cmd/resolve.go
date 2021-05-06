@@ -18,7 +18,7 @@ var (
 )
 
 func newCmdResolve() *cobra.Command {
-	resolveOptions = ctx.NewResolveOptions()
+	resolveOptions = ctx.DefaultResolveOptions()
 
 	cmdResolve := &cobra.Command{
 		Use:   "resolve <file> [flags]",
@@ -41,6 +41,7 @@ The <file> argument can be omitted if the domains to resolve are read from stdin
 	resolveFlags.StringVarP(&resolveOptions.ResolverFile, "resolvers", "r", resolveOptions.ResolverFile, "text file containing public resolvers")
 	resolveFlags.StringVar(&resolveOptions.ResolverTrustedFile, "resolvers-trusted", resolveOptions.ResolverTrustedFile, "text file containing trusted resolvers")
 	resolveFlags.IntVarP(&resolveOptions.WildcardThreads, "threads", "t", resolveOptions.WildcardThreads, "number of threads to use while filtering wildcards")
+	resolveFlags.BoolVar(&resolveOptions.NoPublicResolvers, "no-public", resolveOptions.NoPublicResolvers, "use only trusted resolvers (implies --skip-validation)")
 	resolveFlags.IntVarP(&resolveOptions.WildcardTests, "wildcard-tests", "n", resolveOptions.WildcardTests, "number of tests to perform to detect DNS load balancing")
 	resolveFlags.IntVar(&resolveOptions.WildcardBatchSize, "wildcard-batch", resolveOptions.WildcardBatchSize, "number of subdomains to test for wildcards in a single batch (0 = unlimited) (default unlimited)")
 	resolveFlags.StringVarP(&resolveOptions.WriteDomainsFile, "write", "w", resolveOptions.WriteDomainsFile, "write found domains to a file")
@@ -75,6 +76,10 @@ func runResolve(cmd *cobra.Command, args []string) error {
 	}
 
 	resolveOptions.Mode = 0
+
+	if err := resolveOptions.Validate(); err != nil {
+		return err
+	}
 
 	bannerService := programbanner.NewService(context)
 	resolveService := resolve.NewService(context, resolveOptions)

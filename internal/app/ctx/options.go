@@ -24,6 +24,7 @@ type ResolveOptions struct {
 
 	ResolverFile        string
 	ResolverTrustedFile string
+	NoPublicResolvers   bool
 
 	RateLimit        int
 	RateLimitTrusted int
@@ -46,13 +47,14 @@ type ResolveOptions struct {
 	DomainFile string
 }
 
-// NewResolveOptions creates a new ResolveOptions struct with default values.
-func NewResolveOptions() *ResolveOptions {
+// DefaultResolveOptions creates a new ResolveOptions struct with default values.
+func DefaultResolveOptions() *ResolveOptions {
 	return &ResolveOptions{
 		BinPath: "massdns",
 
 		ResolverFile:        "resolvers.txt",
 		ResolverTrustedFile: "",
+		NoPublicResolvers:   false,
 
 		RateLimit:        0,
 		RateLimitTrusted: 500,
@@ -74,4 +76,14 @@ func NewResolveOptions() *ResolveOptions {
 		Wordlist:   "",
 		DomainFile: "",
 	}
+}
+
+// Validate validates the options.
+func (o *ResolveOptions) Validate() error {
+	// Enforce --skip-validation when --no-public is set
+	if o.NoPublicResolvers {
+		o.SkipValidation = true
+	}
+
+	return nil
 }

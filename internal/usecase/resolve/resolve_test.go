@@ -16,42 +16,47 @@ import (
 
 func TestNewService(t *testing.T) {
 	context := ctx.NewCtx()
-	opt := ctx.NewResolveOptions()
+	opt := ctx.DefaultResolveOptions()
 
 	svc := NewService(context, opt)
 
 	assert.NotNil(t, svc)
 }
 
-func TestInitialize(t *testing.T) {
-	tests := []struct {
-		name                      string
-		haveRequirementError      error
-		haveWorkfileError         error
-		havePrepareResolversError bool
-		wantErr                   bool
-	}{
-		{name: "ok"},
-		{name: "requirements error handling", haveRequirementError: errors.New("error"), wantErr: true},
-		{name: "workfiles error handling", haveWorkfileError: errors.New("error"), wantErr: true},
-		{name: "prepareresolvers error handling", havePrepareResolversError: true, wantErr: true},
-	}
+func TestInitialize_OK(t *testing.T) {
+	service, _ := newStubService(t)
+	err := service.Initialize()
+	assert.Nil(t, err)
+}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			service, stubs := newStubService(t)
-			stubs.spyRequirementChecker.returns = test.haveRequirementError
-			stubs.fakeWorkfileCreator.err = test.haveWorkfileError
+func TestInitialize_RequirementError(t *testing.T) {
+	service, stubs := newStubService(t)
+	stubs.spyRequirementChecker.returns = errors.New("error")
 
-			if test.havePrepareResolversError {
-				service.Options.ResolverFile = ""
-			}
+	err := service.Initialize()
 
-			got := service.Initialize()
+	assert.ErrorIs(t, err, stubs.spyRequirementChecker.returns)
+}
 
-			assert.Equal(t, test.wantErr, got != nil, got)
-		})
-	}
+func TestInitialize_WorkfilesError(t *testing.T) {
+	service, stubs := newStubService(t)
+	stubs.fakeWorkfileCreator.err = errors.New("error")
+
+	err := service.Initialize()
+
+	assert.ErrorIs(t, err, stubs.fakeWorkfileCreator.err)
+}
+
+func TestInitialize_PrepareResolversError(t *testing.T) {
+	service, _ := newStubService(t)
+	service.Options.ResolverFile = ""
+
+	err := service.Initialize()
+	assert.NotNil(t, err)
+
+	service.Options.NoPublicResolvers = true
+	err = service.Initialize()
+	assert.Nil(t, err, "should not cause error when skipping public resolvers")
 }
 
 func TestClose(t *testing.T) {
@@ -138,21 +143,39 @@ func TestCreateDomainReader_CountLinesError(t *testing.T) {
 }
 
 func TestResolvePublic(t *testing.T) {
+	defOpts := ctx.DefaultResolveOptions()
 	publicResolverFile := filetest.CreateFile(t, "public")
 	trustedResolverFile := filetest.CreateFile(t, "trusted")
 
-	service, stubs := newStubService(t)
-	service.Options.ResolverFile = publicResolverFile.Name()
-	service.Options.ResolverTrustedFile = trustedResolverFile.Name()
-	require.Nil(t, service.Initialize())
+	tests := []struct {
+		name          string
+		haveNoPublic  bool
+		wantResolvers string
+		wantRateLimit int
+	}{
+		{name: "ok", wantResolvers: "public", wantRateLimit: defOpts.RateLimit},
+		{name: "nopublic option", haveNoPublic: true, wantResolvers: "trusted", wantRateLimit: defOpts.RateLimitTrusted},
+	}
 
-	domainReader := NewDomainReader(io.NopCloser(strings.NewReader("")), "", nil)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			service, stubs := newStubService(t)
+			service.ResolverLoader = NewDefaultResolverFileLoader()
+			service.Options.ResolverFile = publicResolverFile.Name()
+			service.Options.ResolverTrustedFile = trustedResolverFile.Name()
+			service.Options.NoPublicResolvers = test.haveNoPublic
+			require.Nil(t, service.Initialize())
 
-	err := service.resolvePublic(domainReader)
-	used := filetest.ReadFile(t, stubs.spyMassResolver.resolvers)
+			domainReader := NewDomainReader(io.NopCloser(strings.NewReader("")), "", nil)
 
-	assert.Nil(t, err)
-	assert.Equal(t, []string{"public"}, used)
+			err := service.resolvePublic(domainReader)
+			gotResolvers := filetest.ReadFile(t, stubs.spyMassResolver.resolvers)
+
+			assert.Nil(t, err)
+			assert.Equal(t, []string{test.wantResolvers}, gotResolvers)
+			assert.Equal(t, test.wantRateLimit, stubs.spyMassResolver.ratelimit)
+		})
+	}
 }
 
 func TestResolveTrusted(t *testing.T) {
