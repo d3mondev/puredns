@@ -348,19 +348,14 @@ func (s *Service) resolveTrusted() error {
 		return fmt.Errorf("error resolving domains: %w", err)
 	}
 
-	// Extract domains from cache
-	cacheFile, err := os.Open(s.workfiles.Massdns)
-	if err != nil {
-		return err
-	}
-	defer cacheFile.Close()
+	console.Printf("\n")
 
 	return s.parseCache(s.workfiles.Domains)
 }
 
 func (s *Service) writeResults() error {
 	if s.domainCount > 0 {
-		console.Printf("\n%sFound %s%d%s valid domains:%s\n",
+		console.Printf("%sFound %s%d%s valid domains:%s\n",
 			console.ColorBrightWhite,
 			console.ColorBrightGreen,
 			s.domainCount,
