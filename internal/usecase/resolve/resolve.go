@@ -147,8 +147,10 @@ func (s *Service) Close() {
 func (s *Service) prepareResolvers() error {
 	// Create a copy of the public resolvers in a temporary directory. This is to ensure that the resolvers specified
 	// don't get changed by an external process during the operation.
-	if err := fileoperation.Copy(s.Options.ResolverFile, s.workfiles.PublicResolvers); err != nil {
-		return fmt.Errorf("unable to load public resolvers: %w", err)
+	if !s.Options.NoPublicResolvers {
+		if err := fileoperation.Copy(s.Options.ResolverFile, s.workfiles.PublicResolvers); err != nil {
+			return fmt.Errorf("unable to load public resolvers: %w", err)
+		}
 	}
 
 	// If custom trusted resolvers are specified, load them from a file
@@ -210,12 +212,19 @@ func (s *Service) createDomainReader() (*DomainReader, error) {
 func (s *Service) resolvePublic(reader *DomainReader) error {
 	console.Printf("%sResolving domains with public resolvers%s\n", console.ColorBrightWhite, console.ColorReset)
 
+	resolvers := s.workfiles.PublicResolvers
+	ratelimit := s.Options.RateLimit
+	if s.Options.NoPublicResolvers {
+		resolvers = s.workfiles.TrustedResolvers
+		ratelimit = s.Options.RateLimitTrusted
+	}
+
 	err := s.MassResolver.Resolve(
 		reader,
 		s.workfiles.Massdns,
 		s.domainCount,
-		s.workfiles.PublicResolvers,
-		s.Options.RateLimit,
+		resolvers,
+		ratelimit,
 	)
 
 	if err != nil {
@@ -346,10 +355,10 @@ func (s *Service) resolveTrusted() error {
 	}
 	defer cacheFile.Close()
 
-	if err := s.parseCache(s.workfiles.Domains); err != nil {
-		return err
-	}
+	return s.parseCache(s.workfiles.Domains)
+}
 
+func (s *Service) writeResults() error {
 	if s.domainCount > 0 {
 		console.Printf("\n%sFound %s%d%s valid domains:%s\n",
 			console.ColorBrightWhite,
@@ -361,10 +370,6 @@ func (s *Service) resolveTrusted() error {
 		console.Printf("\n%sNo valid domains remaining.%s\n", console.ColorBrightWhite, console.ColorReset)
 	}
 
-	return nil
-}
-
-func (s *Service) writeResults() error {
 	if err := fileoperation.Cat([]string{s.workfiles.Domains}, os.Stdout); err != nil {
 		return fmt.Errorf("unable to read domain file: %w", err)
 	}

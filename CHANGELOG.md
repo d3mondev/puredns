@@ -5,7 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- No changes yet.
+### Added
+- New option to use only trusted resolvers: --no-public. When this option is set, --skip-validation is also implied. This can help quickly validate small lists with less risk of errors due to bad public resolvers.
+
+### Fixed
+- Number of domains found was not printed when --skip-validation option was set.
 
 ## [2.0.1] - 2021-06-25
 ### Fixed

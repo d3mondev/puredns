@@ -10,7 +10,7 @@ import (
 
 func TestRunBruteforce(t *testing.T) {
 	context = ctx.NewCtx()
-	resolveOptions = ctx.NewResolveOptions()
+	resolveOptions = ctx.DefaultResolveOptions()
 
 	t.Run("missing wordlist", func(t *testing.T) {
 		cmd := newCmdBruteforce()

@@ -9,6 +9,7 @@ import (
 	"github.com/d3mondev/puredns/v2/internal/app/ctx"
 	"github.com/d3mondev/puredns/v2/internal/pkg/console"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPrint(t *testing.T) {
@@ -49,10 +50,29 @@ func TestPrintWithResolveOptions(t *testing.T) {
 			buffer := new(bytes.Buffer)
 			console.Output = buffer
 
+			require.Nil(t, test.haveOpts.Validate())
 			service := NewService(&test.haveCtx)
 			service.PrintWithResolveOptions(&test.haveOpts)
 
 			assert.Truef(t, strings.Contains(buffer.String(), test.want), "%s not found in output", test.want)
 		})
 	}
+}
+
+func TestPrintWithResolveOptions_NoPublic(t *testing.T) {
+	haveCtx := ctx.Ctx{}
+	haveOpts := ctx.ResolveOptions{}
+	haveOpts.NoPublicResolvers = true
+
+	buffer := new(bytes.Buffer)
+	console.Output = buffer
+
+	require.Nil(t, haveOpts.Validate())
+	service := NewService(&haveCtx)
+	service.PrintWithResolveOptions(&haveOpts)
+
+	assert.True(t, strings.Contains(buffer.String(), "No-Public"), "message No-Public should appear in output")
+	assert.False(t, strings.Contains(buffer.String(), "Resolvers"), "message Resolvers should not appear in output")
+	assert.False(t, strings.Contains(buffer.String(), "Rate-Limit  "), "message Rate-Limit should not appear in output")
+	assert.False(t, strings.Contains(buffer.String(), "Skip Validation"), "message Skip Validation should not appear in output")
 }
