@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"io/ioutil"
-	"os"
 
 	"github.com/d3mondev/puredns/v2/internal/app/ctx"
 	"github.com/d3mondev/puredns/v2/internal/pkg/console"
@@ -17,19 +16,6 @@ func must(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func hasStdin() bool {
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-
-	if stat.Mode()&os.ModeNamedPipe == 0 {
-		return false
-	}
-
-	return true
 }
 
 func newCmdRoot() *cobra.Command {

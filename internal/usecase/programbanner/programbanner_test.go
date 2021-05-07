@@ -33,7 +33,8 @@ func TestPrintWithResolveOptions(t *testing.T) {
 	}{
 		{name: "stdin", haveCtx: ctx.Ctx{Stdin: os.Stdin}, haveOpts: ctx.ResolveOptions{}, want: "stdin"},
 		{name: "resolve mode", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{DomainFile: "domains.txt", Mode: 0}, want: "domains.txt"},
-		{name: "bruteforce mode", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{Wordlist: "wordlist.txt", Mode: 1}, want: "wordlist.txt"},
+		{name: "bruteforce mode", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{Domain: "example.com", Wordlist: "wordlist.txt", Mode: 1}, want: "wordlist.txt"},
+		{name: "bruteforce mode multiple domains", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{DomainFile: "domains.txt", Wordlist: "wordlist.txt", Mode: 1}, want: "domains.txt"},
 		{name: "trusted resolvers", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{ResolverTrustedFile: "trusted.txt"}, want: "trusted.txt"},
 		{name: "rate", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{RateLimit: 777}, want: "777"},
 		{name: "batch size", haveCtx: ctx.Ctx{}, haveOpts: ctx.ResolveOptions{WildcardBatchSize: 5555}, want: "5555"},
@@ -71,8 +72,8 @@ func TestPrintWithResolveOptions_NoPublic(t *testing.T) {
 	service := NewService(&haveCtx)
 	service.PrintWithResolveOptions(&haveOpts)
 
-	assert.True(t, strings.Contains(buffer.String(), "No-Public"), "message No-Public should appear in output")
-	assert.False(t, strings.Contains(buffer.String(), "Resolvers"), "message Resolvers should not appear in output")
-	assert.False(t, strings.Contains(buffer.String(), "Rate-Limit  "), "message Rate-Limit should not appear in output")
-	assert.False(t, strings.Contains(buffer.String(), "Skip Validation"), "message Skip Validation should not appear in output")
+	assert.True(t, strings.Contains(buffer.String(), "] No Public Resolvers"), "should appear in output")
+	assert.False(t, strings.Contains(buffer.String(), "] Resolvers"), "should not appear in output")
+	assert.False(t, strings.Contains(buffer.String(), "] Rate-Limit"), "should not appear in output")
+	assert.False(t, strings.Contains(buffer.String(), "] Skip Validation"), "should not appear in output")
 }

@@ -6,10 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- New option to use only trusted resolvers: --no-public. When this option is set, --skip-validation is also implied. This can help quickly validate small lists with less risk of errors due to bad public resolvers.
+- New option to use only trusted resolvers: --no-public. This can help quickly validate small lists with less risk of errors due to bad public resolvers. When this option is set, --skip-validation is also implied.
+- Bruteforce multiple domains at once with the -d, --domains option when using the bruteforce command instead of specifying a single domain as an argument.
 
 ### Fixed
-- Number of domains found was not printed when --skip-validation option was set.
+- Number of domains found was not displayed when the --skip-validation option was set.
 
 ## [2.0.1] - 2021-06-25
 ### Fixed

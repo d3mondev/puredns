@@ -68,7 +68,13 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 
 	if opts.Mode == 1 {
 		console.Printf("%s Mode                 :%s bruteforce\n", tickSymbol, colorOptionValue)
-		console.Printf("%s Domain               :%s %s\n", tickSymbol, colorOptionValue, opts.Domain)
+
+		if opts.DomainFile != "" {
+			console.Printf("%s Domains              :%s %s\n", tickSymbol, colorOptionValue, opts.DomainFile)
+		} else {
+			console.Printf("%s Domain               :%s %s\n", tickSymbol, colorOptionValue, opts.Domain)
+		}
+
 		console.Printf("%s Wordlist             :%s %s\n", tickSymbol, colorOptionValue, file)
 	} else {
 		console.Printf("%s Mode                 :%s resolve\n", tickSymbol, colorOptionValue)
@@ -76,7 +82,7 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 	}
 
 	if opts.NoPublicResolvers {
-		console.Printf("%s No-Public            :%s true\n", tickSymbol, colorOptionValue)
+		console.Printf("%s No Public Resolvers  :%s true\n", tickSymbol, colorOptionValue)
 	}
 
 	if !opts.NoPublicResolvers {
