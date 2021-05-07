@@ -14,7 +14,6 @@ type stubs struct {
 	spyResolverLoader     *spyResolverLoader
 	stubDomainSanitizer   *stubDomainSanitizer
 	spyMassResolver       *spyMassResolver
-	stubLineCounter       *stubLineCounter
 	stubWildcardFilter    *stubWildcardFilter
 	stubResultSaver       *stubResultSaver
 }
@@ -25,7 +24,6 @@ func newStubService(t *testing.T) (*Service, stubs) {
 		fakeWorkfileCreator:   newFakeWorkfileCreator(t),
 		spyResolverLoader:     &spyResolverLoader{},
 		stubDomainSanitizer:   &stubDomainSanitizer{},
-		stubLineCounter:       &stubLineCounter{},
 		spyMassResolver:       &spyMassResolver{},
 		stubWildcardFilter:    &stubWildcardFilter{},
 		stubResultSaver:       &stubResultSaver{},
@@ -39,7 +37,6 @@ func newStubService(t *testing.T) (*Service, stubs) {
 		WorkfileCreator:    stubs.fakeWorkfileCreator,
 		ResolverLoader:     stubs.spyResolverLoader,
 		MassResolver:       stubs.spyMassResolver,
-		LineCounter:        stubs.stubLineCounter.LineCounter,
 		WildcardFilter:     stubs.stubWildcardFilter,
 		ResultSaver:        stubs.stubResultSaver,
 	}
@@ -124,17 +121,6 @@ func (s *spyMassResolver) Current() int {
 
 func (s *spyMassResolver) Rate() float64 {
 	return 0.0
-}
-
-type stubLineCounter struct {
-	called  int
-	returns int
-	err     error
-}
-
-func (s *stubLineCounter) LineCounter(string) (int, error) {
-	s.called++
-	return s.returns, s.err
 }
 
 type stubWildcardFilter struct {

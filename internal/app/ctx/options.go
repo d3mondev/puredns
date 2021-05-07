@@ -1,5 +1,30 @@
 package ctx
 
+import (
+	"errors"
+
+	"github.com/d3mondev/puredns/v2/internal/app"
+)
+
+// ResolveMode is the resolve mode.
+type ResolveMode int
+
+const (
+	// Resolve resolves domains.
+	Resolve ResolveMode = iota
+
+	// Bruteforce bruteforces subdomains.
+	Bruteforce
+)
+
+var (
+	// ErrNoDomain no domain specified.
+	ErrNoDomain error = errors.New("no domain specified")
+
+	// ErrNoWordlist no wordlist specified.
+	ErrNoWordlist error = errors.New("no wordlist specified")
+)
+
 // GlobalOptions contains the program's global options.
 type GlobalOptions struct {
 	TrustedResolvers []string
@@ -41,7 +66,7 @@ type ResolveOptions struct {
 	WriteMassdnsFile   string
 	WriteWildcardsFile string
 
-	Mode       int
+	Mode       ResolveMode
 	Domain     string
 	Wordlist   string
 	DomainFile string
@@ -71,7 +96,7 @@ func DefaultResolveOptions() *ResolveOptions {
 		WriteMassdnsFile:   "",
 		WriteWildcardsFile: "",
 
-		Mode:       0,
+		Mode:       Resolve,
 		Domain:     "",
 		Wordlist:   "",
 		DomainFile: "",
@@ -83,6 +108,17 @@ func (o *ResolveOptions) Validate() error {
 	// Enforce --skip-validation when --no-public is set
 	if o.NoPublicResolvers {
 		o.SkipValidation = true
+	}
+
+	// Validate that a wordlist and a domain are present in bruteforce mode
+	if o.Mode == Bruteforce {
+		if o.Domain == "" && o.DomainFile == "" {
+			return ErrNoDomain
+		}
+
+		if o.Wordlist == "" && !app.HasStdin() {
+			return ErrNoWordlist
+		}
 	}
 
 	return nil

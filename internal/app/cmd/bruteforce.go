@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"errors"
-	"fmt"
 	"os"
 
+	"github.com/d3mondev/puredns/v2/internal/app"
 	"github.com/d3mondev/puredns/v2/internal/usecase/programbanner"
 	"github.com/d3mondev/puredns/v2/internal/usecase/resolve"
 	"github.com/spf13/cobra"
@@ -12,7 +11,7 @@ import (
 
 func newCmdBruteforce() *cobra.Command {
 	cmdBruteforce := &cobra.Command{
-		Use:   "bruteforce <wordlist> domain [flags]",
+		Use:   "bruteforce <wordlist> domain [flags]\n  puredns bruteforce <wordlist> -d domains.txt [flags]",
 		Short: "Bruteforce subdomains using a wordlist",
 		Long: `Bruteforce takes a file containing words to test as subdomains against the
 domain specified. It will invoke massdns using public resolvers for
@@ -21,9 +20,10 @@ Finally, it will ensure the results are free of DNS poisoning by resolving
 the remaining domains using trusted resolvers.
 
 The <wordlist> argument can be omitted if the wordlist is read from stdin.`,
-		Args: cobra.MinimumNArgs(1),
 		RunE: runBruteforce,
 	}
+
+	cmdBruteforce.Flags().StringVarP(&resolveOptions.DomainFile, "domains", "d", resolveOptions.DomainFile, "text file containing domains to bruteforce")
 
 	cmdBruteforce.Flags().AddFlagSet(resolveFlags)
 	cmdBruteforce.Flags().SortFlags = false
@@ -32,19 +32,7 @@ The <wordlist> argument can be omitted if the wordlist is read from stdin.`,
 }
 
 func runBruteforce(cmd *cobra.Command, args []string) error {
-	if len(args) == 1 {
-		if !hasStdin() {
-			fmt.Println(cmd.UsageString())
-			return errors.New("requires a wordlist")
-		}
-		context.Stdin = os.Stdin
-		resolveOptions.Domain = args[0]
-	} else {
-		resolveOptions.Wordlist = args[0]
-		resolveOptions.Domain = args[1]
-	}
-
-	resolveOptions.Mode = 1
+	parseBruteforceArgs(args)
 
 	if err := resolveOptions.Validate(); err != nil {
 		return err
@@ -62,4 +50,27 @@ func runBruteforce(cmd *cobra.Command, args []string) error {
 	bannerService.PrintWithResolveOptions(resolveOptions)
 
 	return resolveService.Resolve()
+}
+
+func parseBruteforceArgs(args []string) error {
+	if app.HasStdin() {
+		context.Stdin = os.Stdin
+
+		if len(args) >= 1 {
+			if resolveOptions.DomainFile == "" {
+				resolveOptions.Domain = args[0]
+			}
+		}
+	} else {
+		if len(args) == 1 {
+			resolveOptions.Wordlist = args[0]
+		} else if len(args) >= 2 {
+			resolveOptions.Wordlist = args[0]
+			resolveOptions.Domain = args[1]
+		}
+	}
+
+	resolveOptions.Mode = 1
+
+	return nil
 }

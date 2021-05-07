@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/d3mondev/puredns/v2/internal/app/ctx"
+	"github.com/d3mondev/puredns/v2/pkg/filetest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +39,7 @@ func TestRunResolve(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		overrideStdin(t, r)
+		filetest.OverrideStdin(t, r)
 
 		context = ctx.NewCtx()
 		cmd := newCmdResolve()

@@ -19,8 +19,6 @@ type Service struct {
 	RequirementChecker RequirementChecker
 	ResolverLoader     ResolverLoader
 	WorkfileCreator    WorkfileCreator
-	FileCopier         func(src string, dest string) error
-	LineCounter        func(src string) (int, error)
 	MassResolver       MassResolver
 	ResultSaver        ResultSaver
 	WildcardFilter     WildcardFilter
@@ -69,8 +67,6 @@ func NewService(ctx *ctx.Ctx, opt *ctx.ResolveOptions) *Service {
 		RequirementChecker: NewDefaultRequirementChecker(shellexecutor.NewShellExecutor()),
 		ResolverLoader:     NewDefaultResolverFileLoader(),
 		WorkfileCreator:    NewDefaultWorkfileCreator(),
-		FileCopier:         fileoperation.Copy,
-		LineCounter:        fileoperation.CountLines,
 		MassResolver:       NewDefaultMassResolver(opt.BinPath),
 		ResultSaver:        NewResultFileSaver(),
 		WildcardFilter:     NewDefaultWildcardFilter(),
@@ -129,7 +125,7 @@ func (s *Service) Resolve() error {
 		return err
 	}
 
-	// Write the results to file and/or stdout
+	// Write the results to stdout and to files
 	if err = s.writeResults(); err != nil {
 		return err
 	}
@@ -168,6 +164,32 @@ func (s *Service) prepareResolvers() error {
 }
 
 func (s *Service) createDomainReader() (*DomainReader, error) {
+	// Create a reader for the source words or domains, depending on the mode
+	sourceReader, err := s.createDomainReaderSource()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a list of domains to process in bruteforce mode, otherwise it's nil
+	var domains []string
+	if s.Options.Mode == ctx.Bruteforce {
+		if domains, err = s.createDomainReaderDomainList(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create a sanitizer if needed, otherwise it's nil
+	var sanitizer DomainSanitizer
+	if !s.Options.SkipSanitize {
+		sanitizer = DefaultSanitizer
+	}
+
+	r := NewDomainReader(sourceReader, domains, sanitizer)
+
+	return r, nil
+}
+
+func (s *Service) createDomainReaderSource() (io.ReadCloser, error) {
 	var sourceReader io.ReadCloser
 
 	if s.Context.Stdin != nil {
@@ -176,14 +198,14 @@ func (s *Service) createDomainReader() (*DomainReader, error) {
 	} else {
 		// Open the filename containing the source data
 		var filename string
-		if s.Options.Mode == 0 {
+		if s.Options.Mode == ctx.Resolve {
 			filename = s.Options.DomainFile
 		} else {
 			filename = s.Options.Wordlist
 		}
 
 		// Count the number of lines to get a total for the progress bar
-		count, err := s.LineCounter(filename)
+		count, err := fileoperation.CountLines(filename)
 		if err != nil {
 			return nil, err
 		}
@@ -198,15 +220,28 @@ func (s *Service) createDomainReader() (*DomainReader, error) {
 		s.domainCount = count
 	}
 
-	// Create a sanitizer if needed, otherwise it's nil
-	var sanitizer DomainSanitizer
-	if !s.Options.SkipSanitize {
-		sanitizer = DefaultSanitizer
+	return sourceReader, nil
+}
+
+func (s *Service) createDomainReaderDomainList() ([]string, error) {
+	var domains []string
+
+	if s.Options.DomainFile != "" {
+		// Read domains from file
+		var err error
+		domains, err = fileoperation.ReadLines(s.Options.DomainFile)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Use domain from options
+		domains = []string{s.Options.Domain}
 	}
 
-	r := NewDomainReader(sourceReader, s.Options.Domain, sanitizer)
+	// Multiply the count by the actual number of domains to test
+	s.domainCount = s.domainCount * len(domains)
 
-	return r, nil
+	return domains, nil
 }
 
 func (s *Service) resolvePublic(reader *DomainReader) error {
