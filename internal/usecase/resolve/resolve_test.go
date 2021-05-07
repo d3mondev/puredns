@@ -74,6 +74,20 @@ func TestClose(t *testing.T) {
 	})
 }
 
+func TestResolve(t *testing.T) {
+	context := ctx.NewCtx()
+	opt := ctx.DefaultResolveOptions()
+	opt.Mode = 0
+	opt.NoPublicResolvers = true
+	opt.DomainFile = filetest.CreateFile(t, "").Name()
+
+	service := NewService(context, opt)
+	require.Nil(t, service.Initialize())
+
+	err := service.Resolve()
+	assert.Nil(t, err)
+}
+
 func TestPrepareResolvers(t *testing.T) {
 	service, _ := newStubService(t)
 	service.workfiles = &Workfiles{}
@@ -92,25 +106,66 @@ func TestPrepareResolvers(t *testing.T) {
 	assert.Equal(t, []string{"trusted"}, gotTrusted, "trusted resolvers file should be populated")
 }
 
-func TestCreateDomainReader_Stdin(t *testing.T) {
+func TestCreateDomainReaderSource_Stdin(t *testing.T) {
 	service, _ := newStubService(t)
+	service.Options.Mode = ctx.Resolve
 	service.Context.Stdin = filetest.CreateFile(t, "stdin")
 	service.Options.DomainFile = filetest.CreateFile(t, "file").Name()
 
-	reader, err := service.createDomainReader()
+	reader, err := service.createDomainReaderSource()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, service.domainCount)
 
 	buf := make([]byte, 1024)
 	n, _ := reader.Read(buf)
 
-	assert.Equal(t, "stdin\n", string(buf[:n]), "should prioritize stdin")
+	assert.Equal(t, "stdin", string(buf[:n]), "should prioritize stdin")
 }
 
-func TestCreateDomainReader_File(t *testing.T) {
+func TestCreateDomainReaderSource_DomainFile(t *testing.T) {
 	service, _ := newStubService(t)
-	service.LineCounter = fileoperation.CountLines
-	service.Options.DomainFile = filetest.CreateFile(t, "file\n").Name()
+	service.Options.Mode = ctx.Resolve
+	service.Options.DomainFile = filetest.CreateFile(t, "example.com\n").Name()
+
+	reader, err := service.createDomainReaderSource()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, service.domainCount)
+
+	buf := make([]byte, 1024)
+	n, _ := reader.Read(buf)
+
+	assert.Equal(t, "example.com\n", string(buf[:n]))
+}
+
+func TestCreateDomainReaderSource_WordlistFile(t *testing.T) {
+	service, _ := newStubService(t)
+	service.Options.Mode = ctx.Bruteforce
+	service.Options.Wordlist = filetest.CreateFile(t, "word\n").Name()
+
+	reader, err := service.createDomainReaderSource()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, service.domainCount)
+
+	buf := make([]byte, 1024)
+	n, _ := reader.Read(buf)
+
+	assert.Equal(t, "word\n", string(buf[:n]))
+}
+
+func TestCreateDomainReaderSource_FileError(t *testing.T) {
+	service, _ := newStubService(t)
+	service.Options.Mode = ctx.Bruteforce
+	service.Options.Wordlist = ""
+
+	_, err := service.createDomainReaderSource()
+	assert.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestCreateDomainReader(t *testing.T) {
+	service, _ := newStubService(t)
+	service.Options.Mode = ctx.Bruteforce
+	service.Options.Domain = "example.com"
+	service.Options.Wordlist = filetest.CreateFile(t, "word\n").Name()
 
 	reader, err := service.createDomainReader()
 	assert.Nil(t, err)
@@ -119,27 +174,23 @@ func TestCreateDomainReader_File(t *testing.T) {
 	buf := make([]byte, 1024)
 	n, _ := reader.Read(buf)
 
-	assert.Equal(t, "file\n", string(buf[:n]))
+	assert.Equal(t, "word.example.com\n", string(buf[:n]))
 }
 
-func TestCreateDomainReader_WordlistError(t *testing.T) {
+func TestCreateDomainReader_MultipleDomains(t *testing.T) {
 	service, _ := newStubService(t)
-	service.Options.Mode = 1
-	service.Options.Wordlist = ""
+	service.Options.Mode = ctx.Bruteforce
+	service.Options.DomainFile = filetest.CreateFile(t, "example.com\nexample.org").Name()
+	service.Options.Wordlist = filetest.CreateFile(t, "word\n").Name()
 
-	_, err := service.createDomainReader()
-	assert.ErrorIs(t, err, os.ErrNotExist)
-}
+	reader, err := service.createDomainReader()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, service.domainCount)
 
-func TestCreateDomainReader_CountLinesError(t *testing.T) {
-	err := errors.New("error")
+	buf := make([]byte, 1024)
+	n, _ := reader.Read(buf)
 
-	service, stubs := newStubService(t)
-	stubs.stubLineCounter.err = err
-	service.Options.DomainFile = filetest.CreateFile(t, "file\n").Name()
-
-	_, err = service.createDomainReader()
-	assert.ErrorIs(t, err, err)
+	assert.Equal(t, "word.example.com\nword.example.org\n", string(buf[:n]))
 }
 
 func TestResolvePublic(t *testing.T) {
@@ -166,7 +217,7 @@ func TestResolvePublic(t *testing.T) {
 			service.Options.NoPublicResolvers = test.haveNoPublic
 			require.Nil(t, service.Initialize())
 
-			domainReader := NewDomainReader(io.NopCloser(strings.NewReader("")), "", nil)
+			domainReader := NewDomainReader(io.NopCloser(strings.NewReader("")), nil, nil)
 
 			err := service.resolvePublic(domainReader)
 			gotResolvers := filetest.ReadFile(t, stubs.spyMassResolver.resolvers)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/d3mondev/puredns/v2/internal/app"
 	"github.com/d3mondev/puredns/v2/internal/app/ctx"
 	"github.com/d3mondev/puredns/v2/internal/usecase/programbanner"
 	"github.com/d3mondev/puredns/v2/internal/usecase/resolve"
@@ -66,7 +67,7 @@ The <file> argument can be omitted if the domains to resolve are read from stdin
 
 func runResolve(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		if !hasStdin() {
+		if !app.HasStdin() {
 			fmt.Println(cmd.UsageString())
 			return errors.New("requires a list of domains to resolve")
 		}

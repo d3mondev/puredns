@@ -2,6 +2,7 @@ package resolve
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 
@@ -18,7 +19,7 @@ type DomainReader struct {
 	sourceScanner   *bufio.Scanner
 	subdomainReader *procreader.ProcReader
 
-	domain    string
+	domains   []string
 	sanitizer DomainSanitizer
 }
 
@@ -28,17 +29,17 @@ var _ io.Reader = (*DomainReader)(nil)
 // If the domain cannot be sanitized or is invalid, an empty string is expected.
 type DomainSanitizer func(domain string) string
 
-// NewDomainReader creates a new DomainReader. If domain is not an empty string, the source
-// reader is expected to contain words that will be prefixed to the domain to create subdomains.
-func NewDomainReader(source io.ReadCloser, domain string, sanitizer DomainSanitizer) *DomainReader {
+// NewDomainReader creates a new DomainReader. If domains is not empty, the source
+// reader is expected to contain words that will be prefixed to the domains to create subdomains.
+func NewDomainReader(source io.ReadCloser, domains []string, sanitizer DomainSanitizer) *DomainReader {
 	domainReader := &DomainReader{
 		source:        source,
 		sourceScanner: bufio.NewScanner(source),
-		domain:        domain,
+		domains:       domains,
 		sanitizer:     sanitizer,
 	}
 
-	domainReader.subdomainReader = procreader.New(domainReader.nextSubdomain)
+	domainReader.subdomainReader = procreader.New(domainReader.nextSubdomains)
 
 	return domainReader
 }
@@ -48,8 +49,8 @@ func (r *DomainReader) Read(p []byte) (int, error) {
 	return r.subdomainReader.Read(p)
 }
 
-// nextSubdomain is a callback used to generate the next subdomain.
-func (r *DomainReader) nextSubdomain(size int) ([]byte, error) {
+// nextSubdomain is a callback used to generate the next subdomains.
+func (r *DomainReader) nextSubdomains(size int) ([]byte, error) {
 	if !r.sourceScanner.Scan() {
 		// Make sure the close the source, discarding the error
 		// as we want the error from the scanner
@@ -64,12 +65,28 @@ func (r *DomainReader) nextSubdomain(size int) ([]byte, error) {
 		return nil, io.EOF
 	}
 
-	domain := r.sourceScanner.Text()
-	if r.domain != "" {
-		// Generate a subdomain from a domain and a word from the source reader
-		domain = fmt.Sprintf("%s.%s", domain, r.domain)
+	var output bytes.Buffer
+	word := r.sourceScanner.Text()
+
+	if len(r.domains) == 0 {
+		// Single domain was read from reader
+		domain := word
+		domain = r.processDomain(domain)
+		output.WriteString(domain)
+	} else {
+		// Generate a subdomain from the word and the list of domains
+		for _, domain := range r.domains {
+			domain = fmt.Sprintf("%s.%s", word, domain)
+			domain = r.processDomain(domain)
+			output.WriteString(domain)
+		}
 	}
 
+	return output.Bytes(), nil
+}
+
+// processDomain processes the domain data
+func (r *DomainReader) processDomain(domain string) string {
 	// Sanitize the domain
 	if r.sanitizer != nil {
 		domain = r.sanitizer(domain)
@@ -78,5 +95,5 @@ func (r *DomainReader) nextSubdomain(size int) ([]byte, error) {
 	// Append newline even if we have empty domain for accurate progress bar
 	domain = domain + "\n"
 
-	return []byte(domain), nil
+	return domain
 }

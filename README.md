@@ -107,6 +107,10 @@ Here's how to bruteforce a massive list of subdomains using a wordlist named `al
 
 `puredns bruteforce all.txt domain.com`
 
+You can also bruteforce multiple domains at once with the `-d` option to load a text file containing domains instead of specifying a single domain as an argument:
+
+`puredns bruteforce all.txt -d domains.txt`
+
 ### Resolving a list of domains
 
 You can also resolve a list of domains contained in a text file (one per line).
