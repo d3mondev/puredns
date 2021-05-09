@@ -15,6 +15,7 @@ func TestDefaultSanitizer(t *testing.T) {
 		{name: "valid domain", haveDomain: "example.com", wantDomain: "example.com"},
 		{name: "tolower transform", haveDomain: "EXAMPLE.COM", wantDomain: "example.com"},
 		{name: "invalid characters", haveDomain: "example+.com", wantDomain: ""},
+		{name: "wildcard", haveDomain: "*.example.com", wantDomain: "example.com"},
 	}
 
 	for _, test := range tests {

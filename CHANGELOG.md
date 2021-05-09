@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New option to use only trusted resolvers: --no-public. This can help quickly validate small lists with less risk of errors due to bad public resolvers. When this option is set, --skip-validation is also implied.
 - Bruteforce multiple domains at once with the -d, --domains option when using the bruteforce command instead of specifying a single domain as an argument.
+- Domain sanitization now strips the `*.` prefix at the beginning of domains instead of removing the domain entirely. For example, puredns will try to resolve `*.example.com` as `example.com`.
 
 ### Fixed
 - Number of domains found was not displayed when the --skip-validation option was set.
