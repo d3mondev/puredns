@@ -10,6 +10,9 @@ func DefaultSanitizer(domain string) string {
 	// Set to lowercase
 	domain = strings.ToLower(domain)
 
+	// Remove *.
+	domain = strings.TrimPrefix(domain, "*.")
+
 	// Keep only domains containing [a-z0-9.-]
 	// Faster than using a regular expression
 	for i := 0; i < len(domain); i++ {
