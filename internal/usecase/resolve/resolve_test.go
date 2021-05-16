@@ -74,6 +74,20 @@ func TestClose(t *testing.T) {
 	})
 }
 
+func TestResolve(t *testing.T) {
+	context := ctx.NewCtx()
+	opt := ctx.DefaultResolveOptions()
+	opt.Mode = 0
+	opt.NoPublicResolvers = true
+	opt.DomainFile = filetest.CreateFile(t, "").Name()
+
+	service := NewService(context, opt)
+	require.Nil(t, service.Initialize())
+
+	err := service.Resolve()
+	assert.Nil(t, err)
+}
+
 func TestPrepareResolvers(t *testing.T) {
 	service, _ := newStubService(t)
 	service.workfiles = &Workfiles{}
