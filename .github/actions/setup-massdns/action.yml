@@ -1,0 +1,10 @@
+name: 'Setup massdns'
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        sudo git clone https://github.com/blechschmidt/massdns.git /usr/local/src/massdns
+        cd /usr/local/src/massdns
+        sudo make
+        sudo make install
+      shell: bash
