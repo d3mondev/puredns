@@ -11,13 +11,13 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
-
-      - name: Checkout code
-        uses: actions/checkout@v2
 
       - name: Lint Code
         run: |
@@ -36,14 +36,17 @@ jobs:
             latest: true
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup massdns
+        uses: ./.github/actions/setup-massdns
+
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
       
-      - name: Checkout code
-        uses: actions/checkout@v2
-
       - name: Load cached dependencies
         uses: actions/cache@v2
         with:
@@ -61,13 +64,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup massdns
+        uses: ./.github/actions/setup-massdns
+
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
-
-      - name: Checkout code
-        uses: actions/checkout@v2
 
       - name: Load cached dependencies
         uses: actions/cache@v2
