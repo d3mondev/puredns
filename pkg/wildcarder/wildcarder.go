@@ -24,7 +24,7 @@ type Wildcarder struct {
 	dnsCache    *DNSCache
 
 	tpool      *threadpool.ThreadPool
-	totalMutex sync.Mutex
+	tpoolMutex sync.Mutex
 	total      int
 
 	randomSubdomains []string
@@ -72,11 +72,14 @@ func New(threadCount int, testCount int, options ...Option) *Wildcarder {
 // Filter reads subdomains from a reader and returns a list of domains that are not wildcards,
 // along with the wildcard subdomain roots found.
 func (wc *Wildcarder) Filter(r io.Reader) (domains, roots []string) {
+	// Mutex used because a progress bar could be trying to access wc.tpool through wc.Current(),
+	// creating a benign race condition that can make tests fail
+	wc.tpoolMutex.Lock()
 	if wc.tpool != nil {
 		panic("concurrent executions of Filter on the same Wildcarder object is not supported")
 	}
-
 	wc.tpool = threadpool.NewThreadPool(wc.threadCount, 1000)
+	wc.tpoolMutex.Unlock()
 
 	results := &result{}
 
@@ -105,11 +108,11 @@ func (wc *Wildcarder) Filter(r io.Reader) (domains, roots []string) {
 
 	wc.tpool.Wait()
 
-	wc.totalMutex.Lock()
+	wc.tpoolMutex.Lock()
 	wc.total += wc.tpool.CurrentCount()
 	wc.tpool.Close()
 	wc.tpool = nil
-	wc.totalMutex.Unlock()
+	wc.tpoolMutex.Unlock()
 
 	domains = results.domains
 	roots = gatherRoots(wc.answerCache)
@@ -124,8 +127,8 @@ func (wc *Wildcarder) QueryCount() int {
 
 // Current returns the current number of domains that have been processed.
 func (wc *Wildcarder) Current() int {
-	wc.totalMutex.Lock()
-	defer wc.totalMutex.Unlock()
+	wc.tpoolMutex.Lock()
+	defer wc.tpoolMutex.Unlock()
 
 	if wc.tpool == nil {
 		return wc.total
