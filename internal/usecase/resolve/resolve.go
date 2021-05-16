@@ -245,14 +245,17 @@ func (s *Service) createDomainReaderDomainList() ([]string, error) {
 }
 
 func (s *Service) resolvePublic(reader *DomainReader) error {
-	console.Printf("%sResolving domains with public resolvers%s\n", console.ColorBrightWhite, console.ColorReset)
-
 	resolvers := s.workfiles.PublicResolvers
 	ratelimit := s.Options.RateLimit
+	resolverString := "public"
+
 	if s.Options.NoPublicResolvers {
 		resolvers = s.workfiles.TrustedResolvers
 		ratelimit = s.Options.RateLimitTrusted
+		resolverString = "trusted"
 	}
+
+	console.Printf("%sResolving domains with %s resolvers%s\n", console.ColorBrightWhite, resolverString, console.ColorReset)
 
 	err := s.MassResolver.Resolve(
 		reader,
