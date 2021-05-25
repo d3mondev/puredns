@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/d3mondev/puredns/v2/pkg/procreader"
 )
@@ -76,7 +77,12 @@ func (r *DomainReader) nextSubdomains(size int) ([]byte, error) {
 	} else {
 		// Generate a subdomain from the word and the list of domains
 		for _, domain := range r.domains {
-			domain = fmt.Sprintf("%s.%s", word, domain)
+			if strings.ContainsRune(domain, '*') {
+				domain = strings.ReplaceAll(domain, "*", word)
+			} else {
+				domain = fmt.Sprintf("%s.%s", word, domain)
+			}
+
 			domain = r.processDomain(domain)
 			output.WriteString(domain)
 		}
