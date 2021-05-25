@@ -6,12 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- New option to use only trusted resolvers: --no-public. This can help quickly validate small lists with less risk of errors due to bad public resolvers. When this option is set, --skip-validation is also implied.
-- Bruteforce multiple domains at once with the -d, --domains option when using the bruteforce command instead of specifying a single domain as an argument.
-- Domain sanitization now strips the `*.` prefix at the beginning of domains instead of removing the domain entirely. For example, puredns will try to resolve `*.example.com` as `example.com`.
+- New option to use trusted resolvers only: --no-public. This can help quickly validate small lists with less risk of errors due to bad public resolvers. When this option is set, --skip-validation is also implied.
+- Bruteforce multiple domains at once with the -d, --domains option when using the bruteforce command instead of specifying a single domain as an argument. For example, `puredns bruteforce wordlist.txt -d domains.txt` will bruteforce every domains specified in the domains.txt file.
+- When bruteforcing subdomains, you can use the '\*' wildcard character to specify where word substitution should occur. For example, `puredns bruteforce wordlist.txt "www.*.example.com"` will replace '\*' with words from the word list instead of adding the word to the beginning of the domain.
 
 ### Fixed
 - Number of domains found was not displayed when the --skip-validation option was set.
+- Domain sanitization now strips any remaining `*.` prefix at the beginning of domains instead of removing the domain entirely. For example, puredns will try to resolve `*.example.com` as `example.com`.
 
 ## [2.0.1] - 2021-06-25
 ### Fixed
