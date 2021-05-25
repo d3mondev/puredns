@@ -2,6 +2,7 @@ package programbanner
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/d3mondev/puredns/v2/internal/app/ctx"
 	"github.com/d3mondev/puredns/v2/internal/pkg/console"
@@ -21,6 +22,13 @@ func NewService(ctx *ctx.Ctx) Service {
 
 // Print prints the program logo along with its name, tagline and version information.
 func (s Service) Print() {
+	version := s.ctx.ProgramVersion
+	if s.ctx.GitBranch != "" {
+		version = fmt.Sprintf("%s-%s", s.ctx.GitBranch, s.ctx.GitRevision)
+	}
+
+	padding := strings.Repeat(" ", 34-len(version)-len(s.ctx.ProgramName))
+
 	console.Printf(console.ColorBrightBlue)
 	console.Printf("                          _           \n")
 	console.Printf("                         | |          \n")
@@ -29,7 +37,7 @@ func (s Service) Print() {
 	console.Printf("| |_) | |_| | | |  __/ (_| | | | \\__ \\\n")
 	console.Printf("| .__/ \\__,_|_|  \\___|\\__,_|_| |_|___/\n")
 	console.Printf("| |                                   \n")
-	console.Printf("|_|                     %s%s %sv%s\n", console.ColorBrightCyan, s.ctx.ProgramName, console.ColorBrightBlue, s.ctx.ProgramVersion)
+	console.Printf("|_|%s%s%s %s%s\n", padding, console.ColorBrightCyan, s.ctx.ProgramName, console.ColorBrightBlue, version)
 	console.Printf("\n")
 	console.Printf("%sFast and accurate DNS resolving and bruteforcing\n", console.ColorBrightWhite)
 	console.Printf("\n")
