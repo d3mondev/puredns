@@ -14,5 +14,8 @@ const (
 	AppSponsorsURL string = "https://gist.githubusercontent.com/d3mondev/0bfff529a4dad627bdb684ad1ef2506d/raw/sponsors.txt"
 )
 
-var GitRevision string
+// GitBranch is the current git branch.
 var GitBranch string
+
+// GitRevision is the current git commit.
+var GitRevision string
