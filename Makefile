@@ -1,4 +1,7 @@
+PKG := github.com/d3mondev/puredns/v2
 PKG_LIST := $(shell go list ./... | grep -v /vendor/)
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD | tr -d '\040\011\012\015\n')
+REVISION := $(shell git rev-parse --short HEAD)
 
 .SILENT: ;
 .PHONY: all
@@ -18,7 +21,7 @@ msan: ## Run memory sanitizer
 	go test -msan $(PKG_LIST)
 
 build: ## Build the binary file
-	go build -trimpath -ldflags="-s -w"
+	go build -trimpath -ldflags="-s -w -X '$(PKG)/internal/app.GitRevision=$(REVISION)' -X '$(PKG)/internal/app.GitBranch=$(BRANCH)'"
 
 cover: ## Code coverage
 	go test -coverprofile=cover.out $(PKG_LIST)

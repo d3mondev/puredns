@@ -24,6 +24,21 @@ func TestPrint(t *testing.T) {
 	assert.True(t, strings.Contains(buffer.String(), ctx.ProgramVersion))
 }
 
+func TestPrintGit(t *testing.T) {
+	buffer := new(bytes.Buffer)
+	console.Output = buffer
+
+	ctx := ctx.NewCtx()
+	ctx.GitBranch = "master"
+	ctx.GitRevision = "revision"
+	service := NewService(ctx)
+	service.Print()
+
+	assert.True(t, strings.Contains(buffer.String(), ctx.ProgramName))
+	assert.True(t, strings.Contains(buffer.String(), ctx.GitBranch))
+	assert.True(t, strings.Contains(buffer.String(), ctx.GitRevision))
+}
+
 func TestPrintWithResolveOptions(t *testing.T) {
 	tests := []struct {
 		name     string
