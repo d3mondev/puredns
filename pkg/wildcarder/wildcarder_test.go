@@ -140,6 +140,21 @@ func TestFilterSimpleWildcard(t *testing.T) {
 	assert.ElementsMatch(t, []string{"test.com"}, roots)
 }
 
+func TestFilterSimpleWildcardCNAME(t *testing.T) {
+	resolver := newFakeResolver()
+	resolver.addAnswer("test.com", []DNSAnswer{{Type: resolvermt.TypeCNAME, Answer: "example.com"}})
+	resolver.addAnswer("www.test.com", []DNSAnswer{{Type: resolvermt.TypeCNAME, Answer: "example.com"}})
+	resolver.addAnswer("random.test.com", []DNSAnswer{{Type: resolvermt.TypeCNAME, Answer: "example.com"}})
+
+	wc := New(1, 1, WithResolver(resolver))
+	overrideWildcardTest(wc)
+
+	domains, roots := wc.Filter(strings.NewReader("www.test.com"))
+
+	assert.ElementsMatch(t, []string{}, domains)
+	assert.ElementsMatch(t, []string{"test.com"}, roots)
+}
+
 func TestFilterMultilevelWildcard(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.addAnswer("test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "192.168.0.5"}})

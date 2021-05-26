@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - No changes yet.
 
+## [2.0.1] - 2021-06-25
+### Fixed
+- Wildcard subdomains with only CNAME records were not being filtered properly.
+
 ## [2.0.0] - 2021-05-03
 ### Added
 - Stdin can be used in place of the domain list or wordlist files. See help for examples.
