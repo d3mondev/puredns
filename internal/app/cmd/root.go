@@ -22,7 +22,7 @@ func newCmdRoot() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   context.ProgramName,
 		Short: context.ProgramTagline,
-		Long: context.ProgramName + " v" + context.ProgramVersion + `
+		Long: context.ProgramName + " " + context.ProgramVersion + `
 
 A subdomain bruteforce tool that wraps around massdns to quickly resolve
 a massive number of DNS queries. Using its heuristic algorithm, it can filter out
