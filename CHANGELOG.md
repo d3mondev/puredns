@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 2021-06-25
 ### Fixed
-- Wildcard subdomains with only CNAME records were not being filtered properly.
+- Wildcard subdomains with only CNAME records were not being filtered properly. [#14](https://github.com/d3mondev/puredns/issues/14)
 
 ## [2.0.0] - 2021-05-03
 ### Added
@@ -59,3 +59,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.0.2]: https://github.com/d3mondev/puredns/releases/tag/v1.0.2
 [1.0.3]: https://github.com/d3mondev/puredns/releases/tag/v1.0.3
 [2.0.0]: https://github.com/d3mondev/puredns/releases/tag/v2.0.0
+[2.0.1]: https://github.com/d3mondev/puredns/releases/tag/v2.0.1
