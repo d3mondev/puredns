@@ -4,17 +4,16 @@ FROM golang:1.16-alpine as puredns
 ENV GO111MODULE on
 RUN apk add --no-cache \
       git && \
-    git clone https://github.com/d3mondev/puredns.git
+    git clone https://github.com/d3mondev/puredns.git /opt/puredns
 
-WORKDIR puredns/
+WORKDIR /opt/puredns
 RUN go install ./...
 
 FROM alpine:3.14 as massdns
-RUN apk --update --no-cache add \
-      ldns && \
-    apk add --no-cache \
+RUN apk add --update --no-cache  \
       build-base \
       git \
+      ldns \
       ldns-dev && \
     git clone --branch=master --depth=1 \
       https://github.com/blechschmidt/massdns.git && \
