@@ -83,10 +83,16 @@ You need to obtain a list of public DNS servers in order to use puredns. [Refer 
 
 ## Installation
 
-You can install puredns using the following command:
+### go 1.15, 1.16
 
 ```
 GO111MODULE=on go get github.com/d3mondev/puredns/v2
+```
+
+### go 1.17+
+
+```
+go install github.com/d3mondev/puredns/v2@latest
 ```
 
 # Usage
