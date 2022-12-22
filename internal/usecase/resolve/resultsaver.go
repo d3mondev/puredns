@@ -26,7 +26,7 @@ func (s *ResultFileSaver) Save(workfiles *Workfiles, opt *ctx.ResolveOptions) er
 	}
 
 	if opt.WriteMassdnsFile != "" {
-		if err := s.fileCopy(workfiles.Massdns, opt.WriteMassdnsFile); err != nil {
+		if err := s.fileCopy(workfiles.MassdnsPublic, opt.WriteMassdnsFile); err != nil {
 			return err
 		}
 	}

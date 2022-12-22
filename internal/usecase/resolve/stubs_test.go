@@ -44,7 +44,7 @@ func newStubService(t *testing.T) (*Service, stubs) {
 	service.Options.ResolverFile = filetest.CreateFile(t, "8.8.8.8").Name()
 
 	t.Cleanup(func() {
-		service.Close()
+		service.Close(false)
 	})
 
 	return service, stubs
