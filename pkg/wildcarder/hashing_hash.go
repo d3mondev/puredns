@@ -1,3 +1,4 @@
+//go:build !no_hashing
 // +build !no_hashing
 
 package wildcarder

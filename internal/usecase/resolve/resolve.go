@@ -134,8 +134,10 @@ func (s *Service) Resolve() error {
 }
 
 // Close terminates the service.
-func (s *Service) Close() {
-	if s.workfiles != nil {
+func (s *Service) Close(debug bool) {
+	if debug {
+		console.Printf("\nDebug files kept in: %s\n", s.workfiles.TempDirectory)
+	} else if s.workfiles != nil {
 		s.workfiles.Close()
 	}
 }
@@ -259,7 +261,7 @@ func (s *Service) resolvePublic(reader *DomainReader) error {
 
 	err := s.MassResolver.Resolve(
 		reader,
-		s.workfiles.Massdns,
+		s.workfiles.MassdnsPublic,
 		s.domainCount,
 		resolvers,
 		ratelimit,
@@ -278,18 +280,18 @@ func (s *Service) filterWildcards() error {
 	// If we're skipping wildcard filtering, we still need to produce a list of valid
 	// domain names for the next step and update the domain count
 	if s.Options.SkipWildcard {
-		return s.parseCache(s.workfiles.Domains)
+		return s.parseCache(s.workfiles.MassdnsPublic, s.workfiles.Domains)
 	}
 
 	// Parsing the cache without a filename only updates the domain count for the progress bar
-	if err := s.parseCache(""); err != nil {
+	if err := s.parseCache(s.workfiles.MassdnsPublic, ""); err != nil {
 		return err
 	}
 
 	console.Printf("%sDetecting wildcard root subdomains%s\n", console.ColorBrightWhite, console.ColorReset)
 
 	opt := WildcardFilterOptions{
-		CacheFilename:        s.workfiles.Massdns,
+		CacheFilename:        s.workfiles.MassdnsPublic,
 		DomainOutputFilename: s.workfiles.Domains,
 		RootOutputFilename:   s.workfiles.WildcardRoots,
 		Resolvers:            s.Context.Options.TrustedResolvers,
@@ -328,9 +330,9 @@ func (s *Service) filterWildcards() error {
 
 // parseCache parses the massdns cache file to count valid domains and save them to a file
 // if the filename is specified.
-func (s *Service) parseCache(domainFilename string) error {
+func (s *Service) parseCache(cacheFilename string, domainFilename string) error {
 	var domainFile *os.File
-	cacheFile, err := os.Open(s.workfiles.Massdns)
+	cacheFile, err := os.Open(cacheFilename)
 	if err != nil {
 		return err
 	}
@@ -376,7 +378,7 @@ func (s *Service) resolveTrusted() error {
 
 	err = s.MassResolver.Resolve(
 		domainFile,
-		s.workfiles.Massdns,
+		s.workfiles.MassdnsTrusted,
 		s.domainCount,
 		s.workfiles.TrustedResolvers,
 		s.Options.RateLimitTrusted,
@@ -388,7 +390,7 @@ func (s *Service) resolveTrusted() error {
 
 	console.Printf("\n")
 
-	return s.parseCache(s.workfiles.Domains)
+	return s.parseCache(s.workfiles.MassdnsTrusted, s.workfiles.Domains)
 }
 
 func (s *Service) writeResults() error {

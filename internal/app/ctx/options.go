@@ -28,7 +28,9 @@ var (
 // GlobalOptions contains the program's global options.
 type GlobalOptions struct {
 	TrustedResolvers []string
-	Quiet            bool
+
+	Quiet bool
+	Debug bool
 }
 
 // DefaultGlobalOptions creates a new GlobalOptions struct with default values.
@@ -40,6 +42,7 @@ func DefaultGlobalOptions() *GlobalOptions {
 		},
 
 		Quiet: false,
+		Debug: false,
 	}
 }
 

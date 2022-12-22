@@ -35,6 +35,7 @@ by using trusted resolvers.`,
 	}
 
 	rootCmd.PersistentFlags().BoolVarP(&context.Options.Quiet, "quiet", "q", context.Options.Quiet, "quiet mode")
+	rootCmd.PersistentFlags().BoolVar(&context.Options.Debug, "debug", context.Options.Debug, "keep intermediate files")
 	rootCmd.Flags().SortFlags = false
 
 	cmdResolve := newCmdResolve()

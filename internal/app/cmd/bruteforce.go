@@ -45,7 +45,7 @@ func runBruteforce(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer resolveService.Close()
+	defer resolveService.Close(context.Options.Debug)
 
 	bannerService.PrintWithResolveOptions(resolveOptions)
 

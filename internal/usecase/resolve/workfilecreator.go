@@ -10,9 +10,10 @@ import (
 type Workfiles struct {
 	TempDirectory string
 
-	Domains   string
-	Massdns   string
-	Temporary string
+	Domains        string
+	MassdnsPublic  string
+	MassdnsTrusted string
+	Temporary      string
 
 	PublicResolvers  string
 	TrustedResolvers string
@@ -57,7 +58,11 @@ func (w *DefaultWorkfileCreator) Create() (*Workfiles, error) {
 		return nil, err
 	}
 
-	if files.Massdns, err = w.createFile(files.TempDirectory + "/" + "massdns.txt"); err != nil {
+	if files.MassdnsPublic, err = w.createFile(files.TempDirectory + "/" + "massdns_public.txt"); err != nil {
+		return nil, err
+	}
+
+	if files.MassdnsTrusted, err = w.createFile(files.TempDirectory + "/" + "massdns_trusted.txt"); err != nil {
 		return nil, err
 	}
 
