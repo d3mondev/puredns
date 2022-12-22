@@ -79,7 +79,7 @@ func TestSave(t *testing.T) {
 
 			workfiles := &Workfiles{}
 			workfiles.Domains = test.haveReadDomainFile
-			workfiles.Massdns = test.haveReadMassdnsFile
+			workfiles.MassdnsPublic = test.haveReadMassdnsFile
 			workfiles.WildcardRoots = test.haveReadWildcardFile
 
 			saver := NewResultFileSaver()

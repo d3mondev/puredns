@@ -1,7 +1,6 @@
 package resolve
 
 import (
-	"io/fs"
 	"strings"
 	"testing"
 
@@ -17,12 +16,12 @@ func TestMassResolverResolve_OK(t *testing.T) {
 	r := NewDefaultMassResolver("")
 
 	err := r.Resolve(strings.NewReader("example.com"), "", 0, "", 10)
-	assert.ErrorIs(t, err, fs.ErrNotExist, "should not call massdns because of invalid path")
+	assert.EqualError(t, err, "exec: no command", "should not call massdns because of invalid path")
 }
 
 func TestMassResolverResolve_WithTotal(t *testing.T) {
 	r := NewDefaultMassResolver("")
 
 	err := r.Resolve(strings.NewReader("example.com"), "", 100, "", 10)
-	assert.ErrorIs(t, err, fs.ErrNotExist)
+	assert.EqualError(t, err, "exec: no command")
 }

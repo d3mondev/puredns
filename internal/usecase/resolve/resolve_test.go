@@ -62,14 +62,14 @@ func TestInitialize_PrepareResolversError(t *testing.T) {
 func TestClose(t *testing.T) {
 	t.Run("without initialize", func(t *testing.T) {
 		service, stubs := newStubService(t)
-		service.Close()
+		service.Close(false)
 		assert.Equal(t, 0, stubs.fakeWorkfileCreator.called)
 	})
 
 	t.Run("after initialize", func(t *testing.T) {
 		service, stubs := newStubService(t)
 		service.Initialize()
-		service.Close()
+		service.Close(false)
 		assert.Equal(t, 1, stubs.fakeWorkfileCreator.called)
 	})
 }
@@ -278,7 +278,7 @@ func TestFilterWildcards(t *testing.T) {
 			stubs.stubWildcardFilter.domains = []string{"example.com"}
 
 			require.Nil(t, service.Initialize())
-			require.Nil(t, fileoperation.WriteLines([]string{"example.com A 127.0.0.1"}, service.workfiles.Massdns))
+			require.Nil(t, fileoperation.WriteLines([]string{"example.com A 127.0.0.1"}, service.workfiles.MassdnsPublic))
 			err := service.filterWildcards()
 			require.Nil(t, err)
 
