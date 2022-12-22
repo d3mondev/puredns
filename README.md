@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://img.shields.io/github/go-mod/go-version/d3mondev/puredns?style=for-the-badge">
     <a href="https://pkg.go.dev/github.com/d3mondev/puredns/v2"><img src="https://img.shields.io/static/v1?label=doc&message=reference&color=teal&style=for-the-badge&logo=go"></a>
-    <img src="https://img.shields.io/github/workflow/status/d3mondev/puredns/build?style=for-the-badge">
+    <img src="https://img.shields.io/github/actions/workflow/status/d3mondev/puredns/build?style=for-the-badge">
     <a href="https://codecov.io/gh/d3mondev/puredns"><img src="https://img.shields.io/codecov/c/github/d3mondev/puredns?style=for-the-badge&token=DHUSMB9I46"></a>
     <a href="https://twitter.com/d3mondev"><img src="https://img.shields.io/twitter/follow/d3mondev?logo=twitter&style=for-the-badge"></a>
 </p>
