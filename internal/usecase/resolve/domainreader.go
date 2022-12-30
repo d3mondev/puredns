@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-
+	"strings"
 	"github.com/d3mondev/puredns/v2/pkg/procreader"
 )
 
