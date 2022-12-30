@@ -67,7 +67,12 @@ func (r *DomainReader) nextSubdomain(size int) ([]byte, error) {
 	domain := r.sourceScanner.Text()
 	if r.domain != "" {
 		// Generate a subdomain from a domain and a word from the source reader
-		domain = fmt.Sprintf("%s.%s", domain, r.domain)
+		if (strings.Contains(r.domain,"FUZZ")){
+			splitDomain := strings.Split(r.domain,"FUZZ");
+			domain = fmt.Sprintf("%s%s%s",splitDomain[0], domain, splitDomain[1]);
+		} else {
+			domain = fmt.Sprintf("%s.%s", domain, r.domain);
+		}
 	}
 
 	// Sanitize the domain
