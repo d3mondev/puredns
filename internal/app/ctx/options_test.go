@@ -26,10 +26,10 @@ func TestResolveOptionsValidate_OK(t *testing.T) {
 
 func TestResolveOptionsValidate_NoPublic(t *testing.T) {
 	have := DefaultResolveOptions()
-	have.NoPublicResolvers = true
+	have.TrustedOnly = true
 
 	want := DefaultResolveOptions()
-	want.NoPublicResolvers = true
+	want.TrustedOnly = true
 	want.SkipValidation = true
 
 	err := have.Validate()

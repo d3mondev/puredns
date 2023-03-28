@@ -89,11 +89,11 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 		console.Printf("%s File                 :%s %s\n", tickSymbol, colorOptionValue, file)
 	}
 
-	if opts.NoPublicResolvers {
+	if opts.TrustedOnly {
 		console.Printf("%s No Public Resolvers  :%s true\n", tickSymbol, colorOptionValue)
 	}
 
-	if !opts.NoPublicResolvers {
+	if !opts.TrustedOnly {
 		console.Printf("%s Resolvers            :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverFile)
 	}
 
@@ -101,7 +101,7 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 		console.Printf("%s Trusted Resolvers    :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverTrustedFile)
 	}
 
-	if !opts.NoPublicResolvers {
+	if !opts.TrustedOnly {
 		rate := "unlimited"
 		if opts.RateLimit != 0 {
 			rate = fmt.Sprintf("%d qps", opts.RateLimit)
@@ -137,7 +137,7 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 		console.Printf("%s[+] Skip Wildcard Detection\n", colorOptionSkipLabel)
 	}
 
-	if !opts.NoPublicResolvers {
+	if !opts.TrustedOnly {
 		if opts.SkipValidation {
 			console.Printf("%s[+] Skip Validation\n", colorOptionSkipLabel)
 		}

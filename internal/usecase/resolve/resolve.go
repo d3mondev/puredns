@@ -145,7 +145,7 @@ func (s *Service) Close(debug bool) {
 func (s *Service) prepareResolvers() error {
 	// Create a copy of the public resolvers in a temporary directory. This is to ensure that the resolvers specified
 	// don't get changed by an external process during the operation.
-	if !s.Options.NoPublicResolvers {
+	if !s.Options.TrustedOnly {
 		if err := fileoperation.Copy(s.Options.ResolverFile, s.workfiles.PublicResolvers); err != nil {
 			return fmt.Errorf("unable to load public resolvers: %w", err)
 		}
@@ -251,7 +251,7 @@ func (s *Service) resolvePublic(reader *DomainReader) error {
 	ratelimit := s.Options.RateLimit
 	resolverString := "public"
 
-	if s.Options.NoPublicResolvers {
+	if s.Options.TrustedOnly {
 		resolvers = s.workfiles.TrustedResolvers
 		ratelimit = s.Options.RateLimitTrusted
 		resolverString = "trusted"
