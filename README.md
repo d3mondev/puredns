@@ -71,9 +71,9 @@ make
 sudo make install
 ```
 
-### go 1.15+
+### go 1.18+
 
-The last two major releases of Go are supported. Note that go 1.16 is recommended.
+The last two major releases of Go are supported.
 
 Refer to the official [Go installation page](https://golang.org/doc/install) for installation instructions.
 
@@ -82,14 +82,6 @@ Refer to the official [Go installation page](https://golang.org/doc/install) for
 You need to obtain a list of public DNS servers in order to use puredns. [Refer to the FAQ](#how-do-i-get-resolvers-for-use-with-puredns) to learn how to curate your own list of working servers.
 
 ## Installation
-
-### go 1.15, 1.16
-
-```
-GO111MODULE=on go get github.com/d3mondev/puredns/v2
-```
-
-### go 1.17+
 
 ```
 go install github.com/d3mondev/puredns/v2@latest
