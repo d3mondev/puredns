@@ -38,7 +38,7 @@ Think this is useful? :star: Star us on GitHub — it helps!
 ## Features
 
 * Resolve thousands of DNS queries per second using massdns and a list of public DNS resolvers
-* Bruteforce subdomains using a wordlist and a root domain
+* Bruteforce subdomains using a wordlist and root domains
 * Clean wildcards and detect wildcard roots using the minimal number of queries to ensure precise results
 * Circumvent DNS load-balancing during wildcard detection
 * Validate that the results are free of DNS poisoning by running against a list of known, trusted resolvers
@@ -91,7 +91,9 @@ go install github.com/d3mondev/puredns/v2@latest
 
 Make sure to view the complete list of available commands and options using `puredns --help`.
 
-If a `resolvers.txt` file is present in the current working directory, puredns will automatically use it as a list of public resolvers. Otherwise, specify the list of resolvers to use using the `-r` argument.
+If `~/.config/puredns/resolvers.txt` or `~/.config/puredns/resolvers-trusted.txt` files are present, puredns will automatically use them as resolvers. Otherwise, specify the list of resolvers to use using the `--resolvers` and `--resolvers-trusted` arguments.
+
+Specifying trusted resolvers is optional. By default, puredns will simply use 8.8.8.8 and 8.8.4.4.
 
 ### Subdomain bruteforcing
 
@@ -167,7 +169,7 @@ You can skip this step using the `--skip-wildcard` flag.
 
 #### 3. Validation
 
-To protect against DNS poisoning, puredns uses massdns one last time to validate the remaining results using an internal list of trusted DNS resolvers. Currently, the trusted resolvers used are `8.8.8.8` and `8.8.4.4`. This step is done at a slower pace to avoid hitting any rate limiting on the trusted resolvers.
+To protect against DNS poisoning, puredns uses massdns one last time to validate the remaining results using trusted DNS resolvers. Currently, the internal trusted resolvers used are `8.8.8.8` and `8.8.4.4`. This step is done at a slower pace to avoid hitting any rate limiting on the trusted resolvers.
 
 You can skip this step using the `--skip-validation` flag.
 
@@ -177,15 +179,17 @@ At this point, the resulting files should be clean of wildcard subdomains and DN
 
 ### How do I get resolvers for use with puredns?
 
-The best way to obtain a list of public resolvers is to get one from [public-dns.info](https://public-dns.info/nameservers-all.txt), then use the [DNS Validator](https://github.com/vortexau/dnsvalidator) project to keep only resolvers that provide valid answers.
+Trickest maintains a list of valid resolvers here: https://github.com/trickest/resolvers
+
+Alternatively, you can obtain a list of public resolvers from [public-dns.info](https://public-dns.info/nameservers-all.txt), then use the [DNS Validator](https://github.com/vortexau/dnsvalidator) project to keep only resolvers that provide valid answers.
 
 If your public resolvers provide incorrect information to puredns, for example by sending back poisoned replies, some subdomains can be missed as they will get filtered out. ***Hint:*** *Avoid resolvers from countries that censor the internet, like China.*
 
-Once you have a list of custom resolvers, you can pass them to puredns with the `-r` argument:
+Once you have a list of custom resolvers, you can pass them to puredns with the `-r` argument or by placing them in a file located at `~/.config/puredns/resolvers.txt`:
 
 `puredns resolve domains.txt -r resolvers.txt`
 
-The default trusted resolvers are currently `8.8.8.8` and `8.8.4.4`. They don't need to be changed. If you do want to change them, you can also specify a custom list with the `--resolvers-trusted` argument. I have done many tests to find the best possible trusted resolvers for puredns - make sure to validate your results carefully if you decide to change them, and adjust the rate-limit with `--rate-limit-trusted`.
+The default trusted resolvers are currently `8.8.8.8` and `8.8.4.4`. If you do want to change them, you can also specify a custom list with the `--resolvers-trusted` argument or by placing them in a file located at `~/.config/puredns/resolvers-trusted.txt`. I have done many tests to find the best possible trusted resolvers for puredns - make sure to validate your results carefully if you decide to change them, and adjust the rate-limit with `--rate-limit-trusted`.
 
 `puredns resolve domains.txt -r resolvers.txt --resolvers-trusted trusted.txt`
 
@@ -219,11 +223,9 @@ By default, puredns puts all the domains in a single batch to save on the number
 
 Puredns does not remove duplicates anywhere in its pipeline. If the input file contains duplicate items such as identical words or domains, puredns will output duplicate elements. You can ensure that the input files provided to puredns are free of duplicates by using a tool like `sort -u`.
 
-### I really enjoyed the old bash/python script. How can I get puredns v1.0 back?
+### Why do the results sometimes contain unrelated domains?
 
-Puredns v1.0 is still available in git but it is no longer maintained. If you still want it, you can use the following command to obtain the latest tagged version:
-
-`git clone --branch v1.0.3 https://github.com/d3mondev/puredns`
+It is likely due to the public resolvers used. Some of them will sometimes return answers unrelated to the queries, leading to random domain names in the output. Puredns does not currently handle this case and leaves it to the user to sanitize the output to ensure the domains found respect the scope.
 
 # Resources
 
@@ -245,7 +247,7 @@ You can contribute to puredns in the following ways:
 * Spread the word about puredns
 * [Become a sponsor](https://github.com/sponsors/d3mondev) 🥇 and earn unique perks
 
-Do you have an idea for an amazing new feature? Did you find a bug you want to fix? Great! Please [submit an issue](https://github.com/d3mondev/puredns/issues) for discussion before making a pull request. At this point, I am unsure if I will be accepting PRs.
+Do you have an idea for an amazing new feature? Did you find a bug you want to fix? Great! Feel free to [submit an issue](https://github.com/d3mondev/puredns/issues) for discussion before making a pull request.
 
 I will not be accepting pull requests for trivial changes such as typo corrections, best practices, minor fixes, etc.
 
