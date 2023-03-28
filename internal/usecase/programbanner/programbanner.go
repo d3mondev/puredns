@@ -97,7 +97,7 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 		console.Printf("%s Resolvers            :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverFile)
 	}
 
-	if opts.ResolverTrustedFile != defaultOptions.ResolverTrustedFile {
+	if opts.ResolverTrustedFile != "" {
 		console.Printf("%s Trusted Resolvers    :%s %s\n", tickSymbol, colorOptionValue, opts.ResolverTrustedFile)
 	}
 
