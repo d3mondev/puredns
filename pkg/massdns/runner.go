@@ -38,7 +38,7 @@ func (runner *defaultRunner) Run(r io.Reader, output string, resolvers string, q
 // createMassdnsArgs creates the command line arguments for massdns.
 func (runner *defaultRunner) createMassdnsArgs(output string, resolvers string, qps int) []string {
 	// Default command line
-	args := []string{"-q", "-r", resolvers, "-o", "Snl", "-t", "A", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", output}
+	args := []string{"-q", "-r", resolvers, "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", output}
 
 	// Set the massdns hashmap size manually to prevent it from accumulating DNS query on start
 	if qps > 0 {
