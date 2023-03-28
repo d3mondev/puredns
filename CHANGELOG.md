@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Number of domains found was not displayed when the --skip-validation option was set.
 - Domain sanitization now strips any remaining `*.` prefix at the beginning of domains instead of removing the domain entirely. For example, puredns will try to resolve `*.example.com` as `example.com`.
-- Wildcard subdomains with only CNAME records were not being filtered properly.
+- Support running massdns as root. [#17](https://github.com/d3mondev/puredns/issues/17) [#27](https://github.com/d3mondev/puredns/issues/27)
 
 ## [2.0.1] - 2021-06-25
 ### Fixed
