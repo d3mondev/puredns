@@ -55,7 +55,7 @@ type ResolveOptions struct {
 
 	ResolverFile        string
 	ResolverTrustedFile string
-	NoPublicResolvers   bool
+	TrustedOnly         bool
 
 	RateLimit        int
 	RateLimitTrusted int
@@ -98,7 +98,7 @@ func DefaultResolveOptions() *ResolveOptions {
 
 		ResolverFile:        resolversPath,
 		ResolverTrustedFile: trustedResolversPath,
-		NoPublicResolvers:   false,
+		TrustedOnly:         false,
 
 		RateLimit:        0,
 		RateLimitTrusted: 500,
@@ -124,8 +124,8 @@ func DefaultResolveOptions() *ResolveOptions {
 
 // Validate validates the options.
 func (o *ResolveOptions) Validate() error {
-	// Enforce --skip-validation when --no-public is set
-	if o.NoPublicResolvers {
+	// Enforce --skip-validation when --trusted-only is set
+	if o.TrustedOnly {
 		o.SkipValidation = true
 	}
 
