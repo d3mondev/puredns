@@ -2,8 +2,11 @@ package ctx
 
 import (
 	"errors"
+	"os/user"
+	"path/filepath"
 
 	"github.com/d3mondev/puredns/v2/internal/app"
+	"github.com/d3mondev/puredns/v2/pkg/fileoperation"
 )
 
 // ResolveMode is the resolve mode.
@@ -77,11 +80,24 @@ type ResolveOptions struct {
 
 // DefaultResolveOptions creates a new ResolveOptions struct with default values.
 func DefaultResolveOptions() *ResolveOptions {
+	resolversPath := "resolvers.txt"
+	trustedResolversPath := ""
+
+	usr, err := user.Current()
+	if err == nil {
+		resolversPath = filepath.Join(usr.HomeDir, ".config", "puredns", "resolvers.txt")
+		trustedResolversPath = filepath.Join(usr.HomeDir, ".config", "puredns", "resolvers-trusted.txt")
+
+		if !fileoperation.FileExists(trustedResolversPath) {
+			trustedResolversPath = ""
+		}
+	}
+
 	return &ResolveOptions{
 		BinPath: "massdns",
 
-		ResolverFile:        "resolvers.txt",
-		ResolverTrustedFile: "",
+		ResolverFile:        resolversPath,
+		ResolverTrustedFile: trustedResolversPath,
 		NoPublicResolvers:   false,
 
 		RateLimit:        0,
