@@ -6,14 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- New option to use trusted resolvers only: --no-public. This can help quickly validate small lists with less risk of errors due to bad public resolvers. When this option is set, --skip-validation is also implied.
+- Resolvers are now loaded from `~/.config/puredns/resolvers.txt` and `~/.config/puredns/resolvers-trusted.txt` by default.
 - Bruteforce multiple domains at once with the -d, --domains option when using the bruteforce command instead of specifying a single domain as an argument. For example, `puredns bruteforce wordlist.txt -d domains.txt` will bruteforce every domains specified in the domains.txt file.
+- New option to use trusted resolvers only: --no-public. This can help quickly validate small lists with less risk of errors due to bad public resolvers. When this option is set, --skip-validation is also implied.
 - When bruteforcing subdomains, you can use the '\*' wildcard character to specify where word substitution should occur. For example, `puredns bruteforce wordlist.txt "www.*.example.com"` will replace '\*' with words from the word list instead of adding the word to the beginning of the domain.
 - Add a --debug global flag to keep intermediate files. Useful to debug massdns or resolver issues.
 
 ### Fixed
 - Number of domains found was not displayed when the --skip-validation option was set.
-- Domain sanitization now strips any remaining `*.` prefix at the beginning of domains instead of removing the domain entirely. For example, puredns will try to resolve `*.example.com` as `example.com`.
+- Domain sanitization now strips any remaining `*.` prefix at the beginning of a domain instead of skipping the domain entirely. For example, puredns will try to resolve `*.example.com` as `example.com`.
 - Support running massdns as root. [#17](https://github.com/d3mondev/puredns/issues/17) [#27](https://github.com/d3mondev/puredns/issues/27)
 
 ## [2.0.1] - 2021-06-25
