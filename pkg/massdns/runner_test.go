@@ -68,11 +68,11 @@ func TestDefaultRunnerRun(t *testing.T) {
 func TestCreateMassdnsArgs_DefaultRateLimit(t *testing.T) {
 	runner := defaultRunner{}
 	gotArgs := runner.createMassdnsArgs("output.txt", "resolvers.txt", 0)
-	assert.ElementsMatch(t, []string{"-q", "-r", "resolvers.txt", "-o", "Snl", "-t", "A", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", "output.txt"}, gotArgs)
+	assert.ElementsMatch(t, []string{"-q", "-r", "resolvers.txt", "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", "output.txt"}, gotArgs)
 }
 
 func TestCreateMassdnsArgs_CustomRateLimit(t *testing.T) {
 	runner := defaultRunner{}
 	gotArgs := runner.createMassdnsArgs("output.txt", "resolvers.txt", 100)
-	assert.ElementsMatch(t, []string{"-q", "-r", "resolvers.txt", "-o", "Snl", "-t", "A", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", "output.txt", "-s", "100"}, gotArgs)
+	assert.ElementsMatch(t, []string{"-q", "-r", "resolvers.txt", "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", "output.txt", "-s", "100"}, gotArgs)
 }
