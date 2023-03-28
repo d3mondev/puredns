@@ -54,7 +54,7 @@ func TestInitialize_PrepareResolversError(t *testing.T) {
 	err := service.Initialize()
 	assert.NotNil(t, err)
 
-	service.Options.NoPublicResolvers = true
+	service.Options.TrustedOnly = true
 	err = service.Initialize()
 	assert.Nil(t, err, "should not cause error when skipping public resolvers")
 }
@@ -78,7 +78,7 @@ func TestResolve(t *testing.T) {
 	context := ctx.NewCtx()
 	opt := ctx.DefaultResolveOptions()
 	opt.Mode = 0
-	opt.NoPublicResolvers = true
+	opt.TrustedOnly = true
 	opt.DomainFile = filetest.CreateFile(t, "").Name()
 
 	service := NewService(context, opt)
@@ -214,7 +214,7 @@ func TestResolvePublic(t *testing.T) {
 			service.ResolverLoader = NewDefaultResolverFileLoader()
 			service.Options.ResolverFile = publicResolverFile.Name()
 			service.Options.ResolverTrustedFile = trustedResolverFile.Name()
-			service.Options.NoPublicResolvers = test.haveNoPublic
+			service.Options.TrustedOnly = test.haveNoPublic
 			require.Nil(t, service.Initialize())
 
 			domainReader := NewDomainReader(io.NopCloser(strings.NewReader("")), nil, nil)

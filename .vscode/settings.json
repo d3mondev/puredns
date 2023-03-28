@@ -1,5 +1,8 @@
 {
-    "gopls": {
-    "buildFlags": ["-tags=no_hashing"],
-  }
+  "gopls": {
+    "buildFlags": [
+      "-tags=no_hashing"
+    ],
+  },
+  "cmake.configureOnOpen": false
 }

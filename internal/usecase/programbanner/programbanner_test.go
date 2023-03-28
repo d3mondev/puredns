@@ -78,7 +78,7 @@ func TestPrintWithResolveOptions(t *testing.T) {
 func TestPrintWithResolveOptions_NoPublic(t *testing.T) {
 	haveCtx := ctx.Ctx{}
 	haveOpts := ctx.ResolveOptions{}
-	haveOpts.NoPublicResolvers = true
+	haveOpts.TrustedOnly = true
 
 	buffer := new(bytes.Buffer)
 	console.Output = buffer
