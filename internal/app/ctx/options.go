@@ -83,13 +83,15 @@ func DefaultResolveOptions() *ResolveOptions {
 	resolversPath := "resolvers.txt"
 	trustedResolversPath := ""
 
-	usr, err := user.Current()
-	if err == nil {
-		resolversPath = filepath.Join(usr.HomeDir, ".config", "puredns", "resolvers.txt")
-		trustedResolversPath = filepath.Join(usr.HomeDir, ".config", "puredns", "resolvers-trusted.txt")
+	if !fileoperation.FileExists(resolversPath) {
+		usr, err := user.Current()
+		if err == nil {
+			resolversPath = filepath.Join(usr.HomeDir, ".config", "puredns", "resolvers.txt")
+			trustedResolversPath = filepath.Join(usr.HomeDir, ".config", "puredns", "resolvers-trusted.txt")
 
-		if !fileoperation.FileExists(trustedResolversPath) {
-			trustedResolversPath = ""
+			if !fileoperation.FileExists(trustedResolversPath) {
+				trustedResolversPath = ""
+			}
 		}
 	}
 
