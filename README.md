@@ -91,7 +91,8 @@ go install github.com/d3mondev/puredns/v2@latest
 
 Make sure to view the complete list of available commands and options using `puredns --help`.
 
-If `~/.config/puredns/resolvers.txt` or `~/.config/puredns/resolvers-trusted.txt` files are present, puredns will automatically use them as resolvers. Otherwise, specify the list of resolvers to use using the `--resolvers` and `--resolvers-trusted` arguments.
+
+If a `resolvers.txt` file exists in the current working directory, puredns will default to using it. Otherwise, if either `~/.config/puredns/resolvers.txt` or `~/.config/puredns/resolvers-trusted.txt` files are present, puredns will automatically utilize them as resolvers. If none of these options are available, specify the resolvers to use with the --resolvers and --resolvers-trusted arguments.
 
 Specifying trusted resolvers is optional. By default, puredns will simply use 8.8.8.8 and 8.8.4.4.
 
