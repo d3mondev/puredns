@@ -87,7 +87,7 @@ func TestPrintWithResolveOptions_NoPublic(t *testing.T) {
 	service := NewService(&haveCtx)
 	service.PrintWithResolveOptions(&haveOpts)
 
-	assert.True(t, strings.Contains(buffer.String(), "] No Public Resolvers"), "should appear in output")
+	assert.True(t, strings.Contains(buffer.String(), "] Trusted Only"), "should appear in output")
 	assert.False(t, strings.Contains(buffer.String(), "] Resolvers"), "should not appear in output")
 	assert.False(t, strings.Contains(buffer.String(), "] Rate-Limit"), "should not appear in output")
 	assert.False(t, strings.Contains(buffer.String(), "] Skip Validation"), "should not appear in output")
