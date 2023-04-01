@@ -90,7 +90,7 @@ func (s Service) PrintWithResolveOptions(opts *ctx.ResolveOptions) {
 	}
 
 	if opts.TrustedOnly {
-		console.Printf("%s No Public Resolvers  :%s true\n", tickSymbol, colorOptionValue)
+		console.Printf("%s Trusted Only         :%s true\n", tickSymbol, colorOptionValue)
 	}
 
 	if !opts.TrustedOnly {
