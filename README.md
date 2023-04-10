@@ -83,6 +83,10 @@ You need to obtain a list of public DNS servers in order to use puredns. [Refer 
 
 ## Installation
 
+You can [download a binary release](https://github.com/d3mondev/puredns/releases).
+
+Alternatively, compile the latest version from source using:
+
 ```
 go install github.com/d3mondev/puredns/v2@latest
 ```
