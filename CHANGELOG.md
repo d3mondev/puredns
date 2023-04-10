@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0] - 2023-04-03
+## [2.1.0] - 2023-04-11
 ### Added
 - Added the ability to bruteforce multiple domains simultaneously using the `-d`, `--domains` option with the bruteforce command, rather than providing just one domain as an argument. Now, executing `puredns bruteforce wordlist.txt -d domains.txt` will bruteforce all domains listed in the domains.txt file. [#13](https://github.com/d3mondev/puredns/issues/13)
 - Added a new option to use trusted resolvers only: `--trusted-only`. This can help quickly validate small domain lists with less risk of errors due to bad public resolvers. When this option is set, `--skip-validation` is also implied. [#11](https://github.com/d3mondev/puredns/issues/11)
@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a `--debug` global flag to keep intermediate files. Useful to debug massdns or resolver issues.
 
 ### Changed
-- Resolvers are now loaded from `~/.config/puredns/resolvers.txt` and `~/.config/puredns/resolvers-trusted.txt` by default. [#35](https://github.com/d3mondev/puredns/issues/35)
+- Resolvers are now loaded from `~/.config/puredns/resolvers.txt` and `~/.config/puredns/resolvers-trusted.txt` by default. If there is a `resolvers.txt` file present in the current directory, it still takes precedence. [#35](https://github.com/d3mondev/puredns/issues/35)
 
 ### Fixed
 - Number of domains found was not displayed when the `--skip-validation` option was set.
