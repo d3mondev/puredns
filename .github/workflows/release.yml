@@ -78,6 +78,7 @@ jobs:
 
       - name: Build
         env:
+          CGO_ENABLED: 0
           GOARCH: ${{ matrix.platform }}
         run: |
           make
