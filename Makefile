@@ -21,7 +21,7 @@ msan: ## Run memory sanitizer
 	go test -msan $(PKG_LIST)
 
 build: ## Build the binary file
-	go build -trimpath -ldflags="-s -w -X '$(PKG)/internal/app.GitRevision=$(REVISION)' -X '$(PKG)/internal/app.GitBranch=$(BRANCH)'"
+	go build -trimpath -ldflags="-s -w"
 
 cover: ## Code coverage
 	go test -coverprofile=cover.out $(PKG_LIST)
