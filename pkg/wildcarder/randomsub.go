@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const randomSubdomainLength = 16
+
 func newRandomSubdomains(count int) []string {
 	const letters = "abcdefghijklmnopqrstuvwxyz1234567890"
 
@@ -13,7 +15,7 @@ func newRandomSubdomains(count int) []string {
 	var subs []string
 
 	for i := 0; i < count; i++ {
-		b := make([]byte, 16)
+		b := make([]byte, randomSubdomainLength)
 
 		for i := range b {
 			b[i] = letters[rng.Intn(len(letters))]

@@ -140,6 +140,23 @@ func TestFilterSimpleWildcard(t *testing.T) {
 	assert.ElementsMatch(t, []string{"test.com"}, roots)
 }
 
+func TestFilterDomainTooLong(t *testing.T) {
+	domainTooLong := strings.Repeat("a", 229) + ".test.com"
+
+	resolver := newFakeResolver()
+	resolver.addAnswer("test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "192.168.0.5"}})
+	resolver.addAnswer(domainTooLong, []DNSAnswer{{Type: resolvermt.TypeA, Answer: "192.168.0.5"}})
+	resolver.addAnswer("random.test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "192.168.0.5"}})
+
+	wc := New(1, 1, WithResolver(resolver))
+	overrideWildcardTest(wc)
+
+	domains, roots := wc.Filter(strings.NewReader(domainTooLong))
+
+	assert.Empty(t, domains)
+	assert.Empty(t, roots)
+}
+
 func TestFilterSimpleWildcardCNAME(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.addAnswer("test.com", []DNSAnswer{{Type: resolvermt.TypeCNAME, Answer: "example.com"}})

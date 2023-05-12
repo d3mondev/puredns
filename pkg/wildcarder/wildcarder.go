@@ -90,6 +90,11 @@ func (wc *Wildcarder) Filter(r io.Reader) (domains, roots []string) {
 			continue
 		}
 
+		// If the domain is too long to test for wildcards, it won't appear in the results
+		if len(domain)+randomSubdomainLength > 253 {
+			continue
+		}
+
 		ctx := detectionTaskContext{
 			results: results,
 
