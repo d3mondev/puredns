@@ -76,6 +76,8 @@ type ResolveOptions struct {
 	Domain     string
 	Wordlist   string
 	DomainFile string
+
+	SocketCount int
 }
 
 // DefaultResolveOptions creates a new ResolveOptions struct with default values.
@@ -121,6 +123,8 @@ func DefaultResolveOptions() *ResolveOptions {
 		Domain:     "",
 		Wordlist:   "",
 		DomainFile: "",
+
+		SocketCount: 1,
 	}
 }
 

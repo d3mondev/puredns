@@ -7,7 +7,7 @@ import (
 
 // Runner is an interface that runs the commands required to execute the massdns binary.
 type Runner interface {
-	Run(reader io.Reader, output string, resolversFile string, qps int) error
+	Run(reader io.Reader, output string, resolversFile string, qps int, socketcount int) error
 }
 
 // Resolver uses massdns to resolve a batch of domain names.
@@ -32,10 +32,10 @@ func NewResolver(binPath string) *Resolver {
 
 // Resolve reads domain names from the reader and saves the answers to a file.
 // It uses the resolvers and queries per second limit specified.
-func (r *Resolver) Resolve(reader io.Reader, output string, resolversFile string, qps int) error {
+func (r *Resolver) Resolve(reader io.Reader, output string, resolversFile string, qps int, socketcount int) error {
 	r.reader = NewLineReader(reader, qps)
 
-	if err := r.runner.Run(r.reader, output, resolversFile, qps); err != nil {
+	if err := r.runner.Run(r.reader, output, resolversFile, qps, socketcount); err != nil {
 		return err
 	}
 

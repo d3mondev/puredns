@@ -41,7 +41,7 @@ func TestResolve(t *testing.T) {
 			resolver := NewResolver("massdns")
 			resolver.runner = stubRunner{returns: test.haveRunnerError}
 
-			gotErr := resolver.Resolve(strings.NewReader(""), "", "", 10)
+			gotErr := resolver.Resolve(strings.NewReader(""), "", "", 10, 1)
 
 			assert.Equal(t, test.wantErr, gotErr != nil, gotErr)
 		})
@@ -55,7 +55,7 @@ func TestCurrent(t *testing.T) {
 	gotCurrent := resolver.Current()
 	assert.Equal(t, 0, gotCurrent)
 
-	resolver.Resolve(strings.NewReader("example.com\n"), "", "", 0)
+	resolver.Resolve(strings.NewReader("example.com\n"), "", "", 0, 1)
 	gotCurrent = resolver.Current()
 	assert.Equal(t, 1, gotCurrent)
 }
