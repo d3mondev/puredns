@@ -67,12 +67,12 @@ func TestDefaultRunnerRun(t *testing.T) {
 
 func TestCreateMassdnsArgs_DefaultRateLimit(t *testing.T) {
 	runner := defaultRunner{}
-	gotArgs := runner.createMassdnsArgs("output.txt", "resolvers.txt", 0, 1, 1)
+	gotArgs := runner.createMassdnsArgs("output.txt", "resolvers.txt", 0, 1)
 	assert.ElementsMatch(t, []string{"-q", "-r", "resolvers.txt", "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "--socket-count", "1", "-w", "output.txt"}, gotArgs)
 }
 
 func TestCreateMassdnsArgs_CustomRateLimit(t *testing.T) {
 	runner := defaultRunner{}
-	gotArgs := runner.createMassdnsArgs("output.txt", "resolvers.txt", 100, 1, 1)
+	gotArgs := runner.createMassdnsArgs("output.txt", "resolvers.txt", 100, 1)
 	assert.ElementsMatch(t, []string{"-q", "-r", "resolvers.txt", "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "--socket-count", "1", "-w", "output.txt", "-s", "100"}, gotArgs)
 }
