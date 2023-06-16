@@ -164,7 +164,7 @@ Puredns then uses its wildcard detection algorithm to detect and extract all the
 
 It will use the massdns output from step 1 as a DNS cache to minimize the number of queries it needs to perform. To ensure precise results, it may have to validate the cache results by performing a DNS query.
 
-You can skip this step using the `--skip-wildcard` flag.
+You can skip this step using the `--skip-wildcard-filter` flag.
 
 #### 3. Validation
 
