@@ -18,7 +18,7 @@ func DefaultSanitizer(domain string) string {
 	for i := 0; i < len(domain); i++ {
 		char := domain[i]
 
-		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || (char == '-') || (char == '.') {
+		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || (char == '-') || (char == '_') || (char == '.') {
 			continue
 		}
 
