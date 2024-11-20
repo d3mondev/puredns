@@ -19,9 +19,9 @@ func newDefaultRunner(binPath string) *defaultRunner {
 }
 
 // Run executes massdns on the specified domains files and saves the results to the output file.
-func (runner *defaultRunner) Run(r io.Reader, output string, resolvers string, qps int) error {
+func (runner *defaultRunner) Run(r io.Reader, output string, resolvers string, qps int, socketcount int) error {
 	// Create massdns program arguments
-	massdnsArgs := runner.createMassdnsArgs(output, resolvers, qps)
+	massdnsArgs := runner.createMassdnsArgs(output, resolvers, qps, socketcount)
 
 	// Create a new exec.Cmd and set Stdin and Stdout to our custom handlers to avoid file operations
 	massdns := runner.execCommand(runner.binPath, massdnsArgs...)
@@ -36,9 +36,9 @@ func (runner *defaultRunner) Run(r io.Reader, output string, resolvers string, q
 }
 
 // createMassdnsArgs creates the command line arguments for massdns.
-func (runner *defaultRunner) createMassdnsArgs(output string, resolvers string, qps int) []string {
+func (runner *defaultRunner) createMassdnsArgs(output string, resolvers string, qps int, socketcount int) []string {
 	// Default command line
-	args := []string{"-q", "-r", resolvers, "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "-w", output}
+	args := []string{"-q", "-r", resolvers, "-o", "Snl", "-t", "A", "--root", "--retry", "REFUSED", "--retry", "SERVFAIL", "--socket-count", strconv.Itoa(socketcount), "-w", output}
 
 	// Set the massdns hashmap size manually to prevent it from accumulating DNS query on start
 	if qps > 0 {

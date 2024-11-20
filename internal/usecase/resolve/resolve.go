@@ -45,7 +45,7 @@ type WorkfileCreator interface {
 // MassResolver resolves the domains contained in the input file using the resolvers present in the resolvers file
 // and saves the results. Queries per second can be limited by setting the qps argument (0 for unlimited).
 type MassResolver interface {
-	Resolve(reader io.Reader, output string, total int, resolversFilename string, qps int) error
+	Resolve(reader io.Reader, output string, total int, resolversFilename string, qps int, socketcount int) error
 }
 
 // ResultSaver saves the results as direction by the options specified.
@@ -250,11 +250,13 @@ func (s *Service) resolvePublic(reader *DomainReader) error {
 	resolvers := s.workfiles.PublicResolvers
 	ratelimit := s.Options.RateLimit
 	resolverString := "public"
+	socketcount := s.Options.SocketCount
 
 	if s.Options.TrustedOnly {
 		resolvers = s.workfiles.TrustedResolvers
 		ratelimit = s.Options.RateLimitTrusted
 		resolverString = "trusted"
+		socketcount = 1
 	}
 
 	console.Printf("%sResolving domains with %s resolvers%s\n", console.ColorBrightWhite, resolverString, console.ColorReset)
@@ -265,6 +267,7 @@ func (s *Service) resolvePublic(reader *DomainReader) error {
 		s.domainCount,
 		resolvers,
 		ratelimit,
+		socketcount,
 	)
 
 	if err != nil {
@@ -382,6 +385,7 @@ func (s *Service) resolveTrusted() error {
 		s.domainCount,
 		s.workfiles.TrustedResolvers,
 		s.Options.RateLimitTrusted,
+		1,
 	)
 
 	if err != nil {

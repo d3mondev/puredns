@@ -51,6 +51,7 @@ The <file> argument can be omitted if the domains to resolve are read from stdin
 	resolveFlags.BoolVar(&resolveOptions.SkipSanitize, "skip-sanitize", resolveOptions.SkipSanitize, "do not sanitize the list of domains to test")
 	resolveFlags.BoolVar(&resolveOptions.SkipWildcard, "skip-wildcard-filter", resolveOptions.SkipWildcard, "do not perform wildcard detection and filtering")
 	resolveFlags.BoolVar(&resolveOptions.SkipValidation, "skip-validation", resolveOptions.SkipValidation, "do not validate results with trusted resolvers")
+	resolveFlags.IntVar(&resolveOptions.SocketCount, "socket-count", resolveOptions.SocketCount, "Number of sockets that massdns will use per process")
 
 	must(cobra.MarkFlagFilename(resolveFlags, "bin"))
 	must(cobra.MarkFlagFilename(resolveFlags, "resolvers"))

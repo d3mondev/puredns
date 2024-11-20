@@ -15,13 +15,13 @@ func TestMassResolverNew(t *testing.T) {
 func TestMassResolverResolve_OK(t *testing.T) {
 	r := NewDefaultMassResolver("")
 
-	err := r.Resolve(strings.NewReader("example.com"), "", 0, "", 10)
+	err := r.Resolve(strings.NewReader("example.com"), "", 0, "", 10, 1)
 	assert.EqualError(t, err, "exec: no command", "should not call massdns because of invalid path")
 }
 
 func TestMassResolverResolve_WithTotal(t *testing.T) {
 	r := NewDefaultMassResolver("")
 
-	err := r.Resolve(strings.NewReader("example.com"), "", 100, "", 10)
+	err := r.Resolve(strings.NewReader("example.com"), "", 100, "", 10, 1)
 	assert.EqualError(t, err, "exec: no command")
 }
