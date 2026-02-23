@@ -189,7 +189,7 @@ func getParent(domain string) string {
 func (t *detectionTask) domainIsWildcard(domain string, answers []AnswerHash) bool {
 	roots := t.ctx.wildcardCache.findHash(answers)
 	for _, root := range roots {
-		if strings.HasSuffix(domain, root) {
+		if domain == root || strings.HasSuffix(domain, "."+root) {
 			return true
 		}
 	}
