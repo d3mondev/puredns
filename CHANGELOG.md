@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Wildcard filtering not working when wildcard tests put the domain over the 253 character limit.
 - Sanitizer accepts subdomains with underscores in them.
+- Fix wildcard detection logic to prevent false positives.
 
 ## [2.1.1] - 2023-04-11
 ### Fixed

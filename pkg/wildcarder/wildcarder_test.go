@@ -296,3 +296,25 @@ func TestFilterSimpleWildcardWithBadPrecache(t *testing.T) {
 	assert.ElementsMatch(t, []string{"test.com"}, roots)
 	assert.Equal(t, len(wc.randomSubdomains)*2+1, count, "should be same as previous test because of cache reuse")
 }
+
+func TestFilterPartialRootSuffixMatchWithCache(t *testing.T) {
+	resolver := newFakeResolver()
+	resolver.addAnswer("test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+	resolver.addAnswer("random.test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+	resolver.addAnswer("www.test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+	resolver.addAnswer("abc-test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+
+	precache := NewDNSCache()
+	precache.Add("test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+	precache.Add("random.test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+	precache.Add("www.test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+	precache.Add("abc-test.com", []DNSAnswer{{Type: resolvermt.TypeA, Answer: "127.0.0.1"}})
+
+	wc := New(1, 1, WithResolver(resolver), WithPreCache(precache))
+	overrideWildcardTest(wc)
+
+	domains, roots := wc.Filter(strings.NewReader("www.test.com\nabc-test.com"))
+
+	assert.ElementsMatch(t, []string{"abc-test.com"}, domains)
+	assert.ElementsMatch(t, []string{"test.com"}, roots)
+}
