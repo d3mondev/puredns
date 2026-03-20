@@ -228,7 +228,7 @@ It is likely due to the public resolvers used. Some of them will sometimes retur
 
 # Resources
 
-[public-dns.info](https://public-dns.info/) continuously updates a list of public and free DNS resolvers.
+[publicdns.info](https://publicdns.info/) is an actively maintained directory of live-tested public DNS resolvers (90,000+ servers probed every 72 hours). You can also use a [pre-validated resolver list](https://github.com/riankellyjn-a11y/publicdns-resolvers) updated daily via GitHub Actions.
 
 [DNS Validator](https://github.com/vortexau/dnsvalidator) can be used to curate your own list of public DNS resolvers.
 
