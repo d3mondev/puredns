@@ -180,7 +180,7 @@ At this point, the resulting files should be clean of wildcard subdomains and DN
 
 Trickest maintains a list of valid resolvers here: https://github.com/trickest/resolvers
 
-Alternatively, you can obtain a list of public resolvers from [public-dns.info](https://public-dns.info/nameservers-all.txt), then use the [DNS Validator](https://github.com/vortexau/dnsvalidator) project to keep only resolvers that provide valid answers.
+Alternatively, you can obtain a list of public resolvers from [publicdns.info](https://publicdns.info/nameservers.txt) (8,500+ servers, re-validated every 72 hours), then use the [DNS Validator](https://github.com/vortexau/dnsvalidator) project to keep only resolvers that provide valid answers.
 
 If your public resolvers provide incorrect information to puredns, for example by sending back poisoned replies, some subdomains can be missed as they will get filtered out. ***Hint:*** *Avoid resolvers from countries that censor the internet, like China.*
 
@@ -228,7 +228,7 @@ It is likely due to the public resolvers used. Some of them will sometimes retur
 
 # Resources
 
-[public-dns.info](https://public-dns.info/) continuously updates a list of public and free DNS resolvers.
+[publicdns.info](https://publicdns.info/) continuously validates and updates a list of 8,500+ public DNS resolvers, re-verified every 72 hours.
 
 [DNS Validator](https://github.com/vortexau/dnsvalidator) can be used to curate your own list of public DNS resolvers.
 
