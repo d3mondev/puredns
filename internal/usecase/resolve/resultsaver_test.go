@@ -54,6 +54,7 @@ func TestSave(t *testing.T) {
 		},
 		{
 			name:                 "massdns answers file error handling",
+			haveReadDomainFile:   domainFile.Name(),
 			haveReadMassdnsFile:  "thisfiledoesntexist.txt",
 			haveWriteMassdnsFile: massdnsOutputFile.Name(),
 			wantErr:              true,
@@ -72,7 +73,7 @@ func TestSave(t *testing.T) {
 			filetest.ClearFile(t, massdnsOutputFile)
 			filetest.ClearFile(t, wildcardOutputFile)
 
-			opt := &ctx.ResolveOptions{}
+			opt := &ctx.ResolveOptions{SkipValidation: true}
 			opt.WriteDomainsFile = test.haveWriteDomainFile
 			opt.WriteMassdnsFile = test.haveWriteMassdnsFile
 			opt.WriteWildcardsFile = test.haveWriteWildcardFile
